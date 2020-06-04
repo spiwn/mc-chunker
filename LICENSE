@@ -199,3 +199,11 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+
+MC-Chunker includes a number of components and libraries with the Apache 
+2.0 License. Your use of those components are subject to the above terms 
+and conditions. Those components and libraries are:
+
+- Gson (https://github.com/google/gson) com.google.code.gson:gson:jar:2.8.6
+
+- Javassist (http://www.javassist.org/) org.javassist:javassist:3.27.0-GA
