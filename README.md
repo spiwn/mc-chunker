@@ -29,6 +29,12 @@ Once you are done using mc-chunker you should remove it from your starting scrip
 To configure mc-chunker edit the chunker.properties file. Some of the values are:
 - x1, z1, x2 and z2 - these specify **Chunk** coordinates of two diagonal corners of a rectangular area to generate chunks in. These are inclusive
 - dimension - in which Minecraft dimension to generate the chunks - possible values OVERWORLD, NETHER or END. The default value is OVERWORLD
+- stop - Whether to stop the Minecraft server when the chunk generation is done - possible value true or false
+
+### Requirements
+- Java 8 or newer
+- A Minecraft vanilla server
+- Internet connection to retrieve Minecraft obfuscation mappings (planned to be optional)
 
 ### Known issues
 
@@ -42,17 +48,18 @@ Currently only Snapshot 20w22a has been tested. Other snapshots might work, but 
 ### Planned features
 
 - Compatibility with more Minecraft versions. This may include older versions depending on how much work is required for compatibility, but there are no plans for compatibility with versions older than Snapshot 19w36a (the first to include obfuscation mappings) (this is a snapshot for 1.15)
-- Ability to stop server when chunk generation is done
+- ~~Option to stop server when chunk generation is done~~
 - Properly handle server not starting
 - Throttling of the generation speed
 - Ability to stop the server, save generation progress, start and resume the chunk generation from where it reached
+- Option to provide mappings as a file and enter the filename in chunker.properties
 
 ### How it works
 Mc-chunker loads the server, makes a small modification (explained bellow) and starts the server, waits for the server to fully start and then starts telling the server to generate (and temporarily load) chunks, one at time. That is all.
 
 The modification mc-chunker makes to the server is required in order to get a reference to a local variable from outside the scope. No (other) behaviour is changed. The server jar in the file system is not modified. When you are done using mc-chunker and start the server the normal way it will be 100% vanilla.
 
-The rate at which chunks are generated is the rate at which Minecraft can generate them (unless there is a better way to do so than the one used). A reference speed is 20 chunks per second, but this will be affected buy the speed of your system.
+The rate at which chunks are generated is the rate at which Minecraft can generate them (unless there is a better way to do so than the one used). A reference speed is 20 chunks per second, but this will be affected by the speed of your system.
 
 ### License
 

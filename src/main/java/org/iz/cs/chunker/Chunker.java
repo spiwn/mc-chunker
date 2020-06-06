@@ -62,7 +62,7 @@ public class Chunker {
     }
 
     public static void main(String[] args) throws Exception {
-        Path currentDirectory = Paths.get(".").toAbsolutePath();
+        Path currentDirectory = Paths.get(".").toAbsolutePath().normalize();
 //        Configuration.createEmptyPropertiesFile(currentDirectory);
 
         if (args.length == 0) {
@@ -77,13 +77,21 @@ public class Chunker {
             return;
         }
 
+        InputHandler inputHandler = null;
+        if (Configuration.stop) {
+            inputHandler = new InputHandler(System.in);
+            System.setIn(inputHandler);
+        }
+
+
         Path serverJar = currentDirectory.resolve(Configuration.serverJar);
         if (!Files.exists(serverJar)) {
             System.out.println("Server jar (" + Configuration.serverJar + ") not found");
             return;
         }
+        serverJar = serverJar.toAbsolutePath().normalize();
 
-        JarClassLoader loader = new JarClassLoader(serverJar.toAbsolutePath().normalize().toString());
+        JarClassLoader loader = new JarClassLoader(serverJar.toString());
 
         JarFile jarFile = loader.getJarFile();
         String versionId = getServerVersionId(jarFile);
@@ -102,9 +110,13 @@ public class Chunker {
         startMinecraftServer(loader, serverArgs);
 
         Field instanceField = dedicatedServerClass.getDeclaredField("instance");
-        Object value = instanceField.get(null);
+        Object dedicatedServer = instanceField.get(null);
 
-        generateChunks(mapping, loader, value);
+        generateChunks(mapping, loader, dedicatedServer);
+
+        if (inputHandler != null) {
+            inputHandler.enqueue("stop\n", StandardCharsets.UTF_8);
+        }
 
         System.out.println("Chunker Done");
     }

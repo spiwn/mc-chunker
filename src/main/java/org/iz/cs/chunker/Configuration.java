@@ -34,11 +34,13 @@ public class Configuration {
     public static Integer z2 = null;
     public static String mapping = null;
     public static String dimension = null;
+    public static Boolean stop = null;
 
 
     public static Properties getDefaults() {
         Properties defaults = new Properties();
         defaults.setProperty("dimension", "OVERWORLD");
+        defaults.setProperty("stop", "false");
         return defaults;
     }
 
@@ -92,10 +94,14 @@ public class Configuration {
         z2 = big;
 
         mapping = props.getProperty("mapping");
+
         dimension = props.getProperty("dimension").toUpperCase();
         if (!Chunker.DIMENSIONS.contains(dimension)) {
             throw new IllegalArgumentException("Invalid value for dimension property");
         }
+
+        stop = Boolean.valueOf(props.getProperty("stop"));
+
         return true;
     }
 

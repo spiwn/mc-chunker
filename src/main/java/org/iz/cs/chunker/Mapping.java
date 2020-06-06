@@ -101,15 +101,17 @@ public class Mapping {
 
         Path manifestPath = chunkerPath.resolve(VERSION_MANIFEST_JSON);
         boolean hasVersionsManifest = Files.exists(manifestPath);
+        boolean downloadedManifest = false;
         if (!hasVersionsManifest) {
             System.out.println("Downloading versions manifest");
             downloadToFile(VERSIONS_MANIFEST_URL, manifestPath);
+            downloadedManifest = true;
         }
 
         Path clientJsonPath = chunkerPath.resolve("client_" + versionId + ".json");
         boolean hasClientJson = Files.exists(clientJsonPath);
         if (!hasClientJson) {
-            String clientJsonUrl = getClientJsonUrl(versionId, manifestPath, false);
+            String clientJsonUrl = getClientJsonUrl(versionId, manifestPath, downloadedManifest);
             System.out.println("Downloading client.json for " + versionId);
             downloadToFile(clientJsonUrl, clientJsonPath);
         }
