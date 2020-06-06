@@ -28,7 +28,7 @@ Once you are done using mc-chunker you should remove it from your starting scrip
 ### Configuration
 To configure mc-chunker edit the chunker.properties file. Some of the values are:
 - x1, z1, x2 and z2 - these specify **Chunk** coordinates of two diagonal corners of a rectangular area to generate chunks in. These are inclusive
-- dimension - in which Minecraft dimension to generate the chunks - possible values OVERWORLD, NETHER or END. The default value is OVERWORLD
+- dimension - in which Minecraft dimension(s) to generate the chunks - possible values OVERWORLD, NETHER or END. The default value is OVERWORLD. Comma separated list of values
 - stop - Whether to stop the Minecraft server when the chunk generation is done - possible value true or false
 
 ### Requirements
@@ -43,7 +43,7 @@ To configure mc-chunker edit the chunker.properties file. Some of the values are
 - MC-Chunker is not compatible with older versions
 
 ### Minecraft version compatability
-Currently only Snapshot 20w22a has been tested. Other snapshots might work, but they have not been tested yet.
+Currently only Snapshot 20w22a through 1.16-pre2 have been tested. Other snapshots might work, but they have not been tested yet.
 
 ### Planned features
 

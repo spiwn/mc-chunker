@@ -33,7 +33,7 @@ public class Configuration {
     public static Integer x2 = null;
     public static Integer z2 = null;
     public static String mapping = null;
-    public static String dimension = null;
+    public static String[] dimensions = null;
     public static Boolean stop = null;
 
 
@@ -95,9 +95,12 @@ public class Configuration {
 
         mapping = props.getProperty("mapping");
 
-        dimension = props.getProperty("dimension").toUpperCase();
-        if (!Chunker.DIMENSIONS.contains(dimension)) {
-            throw new IllegalArgumentException("Invalid value for dimension property");
+        dimensions = props.getProperty("dimension").toUpperCase().split(",");
+        for (int i = 0; i < dimensions.length; i++) {
+            dimensions[i] = dimensions[i].trim();
+            if (!Chunker.DIMENSIONS.contains(dimensions[i])) {
+                throw new IllegalArgumentException("Invalid value for dimension property");
+            }
         }
 
         stop = Boolean.valueOf(props.getProperty("stop"));

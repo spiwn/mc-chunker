@@ -147,65 +147,72 @@ public class Chunker {
         Field isReady_f = mc_s_cl.getDeclaredField(mapping.getField(MINECRAFT_SERVER_CN, IS_READY_F));
         isReady_f.setAccessible(true);
         Class<?> level_cl = loader.loadClass(mapping.getClassName(LEVEL_CN));
-        Field level_dimension_f = level_cl.getDeclaredField(mapping.getField(LEVEL_CN, Configuration.dimension));
         Method getChunk_m = level_cl.getDeclaredMethod(
                 mapping.getMethod(LEVEL_CN, GET_CHUNK_M, "int", "int"), int.class, int.class);
 
 
         System.out.println("Waiting for server to load");
-        Object overworldLevelKey = level_dimension_f.get(null);
-        int count = 0;
-        int limit = 100;
-        long pause = 1000L;
-        while (!(Boolean) isReady_f.get(dedicatedServer) && count < limit) {
-            Thread.sleep(pause);
-            count++;
-        }
-        Object level = getLevel_m.invoke(dedicatedServer, overworldLevelKey);
 
-        if (level == null) {
-            throw new IllegalArgumentException("Server did not load dimension in " + (limit * pause) / 1000L + "s");
-        }
+        for (String dimension : Configuration.dimensions) {
+
+            Field level_dimension_f = level_cl.getDeclaredField(mapping.getField(LEVEL_CN, dimension));
+            Object overworldLevelKey = level_dimension_f.get(null);
+
+            int count = 0;
+            int limit = 100;
+            long pause = 1000L;
+            while (!(Boolean) isReady_f.get(dedicatedServer) && count < limit) {
+                Thread.sleep(pause);
+                count++;
+            }
+            Object level = getLevel_m.invoke(dedicatedServer, overworldLevelKey);
+
+            if (level == null) {
+                throw new IllegalArgumentException("Server did not load dimension " + dimension + "in " + (limit * pause) / 1000L + "s");
+            }
 
 //        Class<?> chunk_access_cl = loader.loadClass(mapping.getClassName(CHUNK_ACCESS_CN));
 //        Method isUnsaved_m = chunk_access_cl.getDeclaredMethod(mapping.getMethod(CHUNK_ACCESS_CN, IS_UNSAVED_M));
 //        Method getStatus_m = chunk_access_cl.getDeclaredMethod(mapping.getMethod(CHUNK_ACCESS_CN, "getStatus"));
 //        Method setUnsaved_m = chunk_access_cl.getDeclaredMethod(mapping.getMethod(CHUNK_ACCESS_CN, SET_UNSAVED_M, "boolean"), boolean.class);
 
-        int x1 = Configuration.x1;
-        int x2 = Configuration.x2;
-        int z1 = Configuration.z1;
-        int z2 = Configuration.z2;
+            int x1 = Configuration.x1;
+            int x2 = Configuration.x2;
+            int z1 = Configuration.z1;
+            int z2 = Configuration.z2;
 
-        int total = (x2 - x1 + 1) * (z2 - z1 + 1);
-        int counter = 0;
+            int total = (x2 - x1 + 1) * (z2 - z1 + 1);
+            int counter = 0;
 
-        int step;
-        float percentIncrement;
+            int step;
+            float percentIncrement;
 
-        System.out.println("Starting generating chunks for area (" + x1 + ", " + z1 + ") (" + x2 + ", " + z2 + ")."
-                + "Area contains " + total + " total chunks" );
+            System.out.println("Starting generating chunks for area (" + x1 + ", " + z1 + ") (" + x2 + ", " + z2 + "), "
+                    + "dimension " + dimension + ". "
+                    + "Area contains " + total + " total chunks" );
 
-        if (total < 200) {
-            step = 1;
-            percentIncrement = 100f / (float) total;
-        } else {
-            step = total / 200;
-            percentIncrement = 0.5f;
-        }
-        float progress = 0;
+            if (total < 200) {
+                step = 1;
+                percentIncrement = 100f / (float) total;
+            } else {
+                step = total / 200;
+                percentIncrement = 0.5f;
+            }
+            float progress = 0;
 
-        long start = System.currentTimeMillis();
-        for (int i = x1; i <= x2; i++) {
-            for (int j = z1; j <= z2; j++) {
-                getChunk_m.invoke(level, i, j);
-                if (counter++ == step) {
-                    counter = 0;
-                    progress += percentIncrement;
-                    long time = System.currentTimeMillis() - start;
-                    System.out.println("Progress: " + progress + "% Elapsed: " + (float) time/ 1000 + "s Remaining estimate: " +  ((time * (100 / progress) - time) / 1000) + "s");
+            long start = System.currentTimeMillis();
+            for (int i = x1; i <= x2; i++) {
+                for (int j = z1; j <= z2; j++) {
+                    getChunk_m.invoke(level, i, j);
+                    if (counter++ == step) {
+                        counter = 0;
+                        progress += percentIncrement;
+                        long time = System.currentTimeMillis() - start;
+                        System.out.println("Progress: " + progress + "% Elapsed: " + (float) time/ 1000 + "s Remaining estimate: " +  ((time * (100 / progress) - time) / 1000) + "s");
+                    }
                 }
             }
+            System.out.println("Done generating chunk in dimension " + dimension);
         }
         System.out.println("Chunk generation done");
     }
