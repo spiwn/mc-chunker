@@ -28,8 +28,9 @@ Once you are done using mc-chunker you should remove it from your starting scrip
 ### Configuration
 To configure mc-chunker edit the chunker.properties file. Some of the values are:
 - x1, z1, x2 and z2 - these specify **Chunk** coordinates of two diagonal corners of a rectangular area to generate chunks in. These are inclusive
-- dimension - in which Minecraft dimension(s) to generate the chunks - possible values OVERWORLD, NETHER or END. The default value is OVERWORLD. Comma separated list of values
-- stop - Whether to stop the Minecraft server when the chunk generation is done - possible value true or false
+- dimension - in which Minecraft dimension(s) to generate the chunks - possible values: OVERWORLD, NETHER or END. The default value is OVERWORLD. Comma separated list of values
+- stop - Whether to stop the Minecraft server when the chunk generation is done - possible values: true or false
+- suppress-server-output - If set to true, console output from the server will not be shown. Log output will remain the same. Possible values: true or false 
 
 ### Requirements
 - Java 8 or newer
@@ -53,6 +54,7 @@ Currently only Snapshot 20w22a through 1.16-pre2 have been tested. Other snapsho
 - Throttling of the generation speed
 - Ability to stop the server, save generation progress, start and resume the chunk generation from where it reached
 - Option to provide mappings as a file and enter the filename in chunker.properties
+- Option to use excessive amounts of CPU in order to speed up generation
 
 ### How it works
 Mc-chunker loads the server, makes a small modification (explained bellow) and starts the server, waits for the server to fully start and then starts telling the server to generate (and temporarily load) chunks, one at time. That is all.

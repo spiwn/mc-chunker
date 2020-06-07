@@ -25,6 +25,7 @@ import java.util.Properties;
 
 public class Configuration {
 
+
     public  static final String PROPERTIES = "chunker.properties";
 
     public static String serverJar = null;
@@ -36,11 +37,15 @@ public class Configuration {
     public static String[] dimensions = null;
     public static Boolean stop = null;
 
+    public static Boolean supressServerOutput = null;
+    private static final String SUPPRESS_SERVER_OUTPUT = "suppress-server-output";
+
 
     public static Properties getDefaults() {
         Properties defaults = new Properties();
         defaults.setProperty("dimension", "OVERWORLD");
         defaults.setProperty("stop", "false");
+        defaults.setProperty(SUPPRESS_SERVER_OUTPUT, "false");
         return defaults;
     }
 
@@ -104,6 +109,7 @@ public class Configuration {
         }
 
         stop = Boolean.valueOf(props.getProperty("stop"));
+        supressServerOutput = Boolean.valueOf(props.getProperty(SUPPRESS_SERVER_OUTPUT));
 
         return true;
     }

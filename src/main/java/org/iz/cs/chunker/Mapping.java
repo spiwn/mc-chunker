@@ -15,6 +15,8 @@
  */
 package org.iz.cs.chunker;
 
+import static org.iz.cs.chunker.ConsolePrinter.println;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -103,7 +105,7 @@ public class Mapping {
         boolean hasVersionsManifest = Files.exists(manifestPath);
         boolean downloadedManifest = false;
         if (!hasVersionsManifest) {
-            System.out.println("Downloading versions manifest");
+            println("Downloading versions manifest");
             downloadToFile(VERSIONS_MANIFEST_URL, manifestPath);
             downloadedManifest = true;
         }
@@ -112,7 +114,7 @@ public class Mapping {
         boolean hasClientJson = Files.exists(clientJsonPath);
         if (!hasClientJson) {
             String clientJsonUrl = getClientJsonUrl(versionId, manifestPath, downloadedManifest);
-            System.out.println("Downloading client.json for " + versionId);
+            println("Downloading client.json for " + versionId);
             downloadToFile(clientJsonUrl, clientJsonPath);
         }
 
@@ -120,7 +122,7 @@ public class Mapping {
         boolean hasMappingForVersion = Files.exists(mappingPath);
         if (!hasMappingForVersion) {
             String mappingUrl = getMappingUrl(clientJsonPath);
-            System.out.println("Downloading server mapping for " + versionId);
+            println("Downloading server mapping for " + versionId);
             downloadToFile(mappingUrl, mappingPath);
         }
 

@@ -27,14 +27,19 @@ public class InputHandler extends InputStream {
             @Override
             public void run() {
                 try {
+                    boolean hasNotified = false;
                     while (true) {
-                        if (defaultInput.available() == 0) {
+                        if (defaultInput.available() == 0 || hasNotified) {
                             synchronized (defaultInput) {
                                 defaultInput.wait();
                             }
+                            hasNotified = false;
                         }
                         synchronized (lock) {
-                            lock.notify();
+                            if (defaultInput.available() > 0) {
+                                lock.notify();
+                                hasNotified = true;
+                            }
                         }
                     }
                 } catch (InterruptedException e) {

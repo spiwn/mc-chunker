@@ -15,6 +15,8 @@
  */
 package org.iz.cs.chunker;
 
+import static org.iz.cs.chunker.ConsolePrinter.println;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -63,6 +65,9 @@ public class Chunker {
 
     public static void main(String[] args) throws Exception {
         Path currentDirectory = Paths.get(".").toAbsolutePath().normalize();
+
+        ConsolePrinter.setOut(System.out);
+
 //        Configuration.createEmptyPropertiesFile(currentDirectory);
 
         if (args.length == 0) {
@@ -73,7 +78,7 @@ public class Chunker {
 
         boolean hasConfiguration = Configuration.loadConfiguration(currentDirectory);
         if (!hasConfiguration) {
-            System.out.println("Empty " + Configuration.PROPERTIES + " generated. Please fill in and run again");
+            println("Empty " + Configuration.PROPERTIES + " generated. Please fill in and run again");
             return;
         }
 
@@ -83,10 +88,14 @@ public class Chunker {
             System.setIn(inputHandler);
         }
 
+        if (Configuration.supressServerOutput) {
+            System.setOut(new OutputHandler());
+        }
+
 
         Path serverJar = currentDirectory.resolve(Configuration.serverJar);
         if (!Files.exists(serverJar)) {
-            System.out.println("Server jar (" + Configuration.serverJar + ") not found");
+            println("Server jar (" + Configuration.serverJar + ") not found");
             return;
         }
         serverJar = serverJar.toAbsolutePath().normalize();
@@ -118,7 +127,7 @@ public class Chunker {
             inputHandler.enqueue("stop\n", StandardCharsets.UTF_8);
         }
 
-        System.out.println("Chunker Done");
+        println("Chunker Done");
     }
 
     @SuppressWarnings("unchecked")
@@ -151,7 +160,7 @@ public class Chunker {
                 mapping.getMethod(LEVEL_CN, GET_CHUNK_M, "int", "int"), int.class, int.class);
 
 
-        System.out.println("Waiting for server to load");
+        println("Waiting for server to load");
 
         for (String dimension : Configuration.dimensions) {
 
@@ -187,7 +196,7 @@ public class Chunker {
             int step;
             float percentIncrement;
 
-            System.out.println("Starting generating chunks for area (" + x1 + ", " + z1 + ") (" + x2 + ", " + z2 + "), "
+            println("Starting generating chunks for area (" + x1 + ", " + z1 + ") (" + x2 + ", " + z2 + "), "
                     + "dimension " + dimension + ". "
                     + "Area contains " + total + " total chunks" );
 
@@ -208,17 +217,17 @@ public class Chunker {
                         counter = 0;
                         progress += percentIncrement;
                         long time = System.currentTimeMillis() - start;
-                        System.out.println("Progress: " + progress + "% Elapsed: " + (float) time/ 1000 + "s Remaining estimate: " +  ((time * (100 / progress) - time) / 1000) + "s");
+                        println("Progress: " + progress + "% Elapsed: " + (float) time/ 1000 + "s Remaining estimate: " +  ((time * (100 / progress) - time) / 1000) + "s");
                     }
                 }
             }
-            System.out.println("Done generating chunk in dimension " + dimension);
+            println("Done generating chunk in dimension " + dimension);
         }
-        System.out.println("Chunk generation done");
+        println("Chunk generation done");
     }
 
     private static void startMinecraftServer(JarClassLoader loader, String[] args) throws Exception {
-        System.out.println("Starting Minecraft server");
+        println("Starting Minecraft server");
         String main = loader.getMain();
 
         Class<?> mainClazz = loader.loadClass(main);
@@ -241,7 +250,7 @@ public class Chunker {
         t.start();
         t.join();
 
-        System.out.println("Minecreaft server started");
+        println("Minecreaft server started");
     }
 
 }
