@@ -1,56 +1,69 @@
 package org.iz.cs.chunker;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class InputHandler extends InputStream {
-
-    private Object lock = new Object();
 
     private Queue<byte[]> textQueue;
     private InputStream defaultInput;
     private byte[] currentText;
     private int position;
+    private Lock lock;
+    private Condition inputAvailable;
+    private Condition inputHasBeenRead;
+
 
     public InputHandler(InputStream defaultInput) {
         this.defaultInput = defaultInput;
+        lock = new ReentrantLock(false);
+        inputAvailable = lock.newCondition();
+        inputHasBeenRead = lock.newCondition();
+
 
         textQueue= new ConcurrentLinkedQueue<byte[]>();
         currentText = null;
         position = 0;
+
+        if (!defaultInput.markSupported()) {
+            this.defaultInput = new BufferedInputStream(defaultInput);
+        }
 
         Thread t =  new Thread(new Runnable() {
 
             @Override
             public void run() {
                 try {
-                    boolean hasNotified = false;
                     while (true) {
-                        if (defaultInput.available() == 0 || hasNotified) {
-                            synchronized (defaultInput) {
-                                defaultInput.wait();
-                            }
-                            hasNotified = false;
+                        if (defaultInput.available() == 0) {
+                            defaultInput.mark(1);
+                            defaultInput.read();
+                            defaultInput.reset();
                         }
-                        synchronized (lock) {
-                            if (defaultInput.available() > 0) {
-                                lock.notify();
-                                hasNotified = true;
-                            }
+                        if (defaultInput.available() > 0) {
+                            lock.lockInterruptibly();
+                            inputAvailable.signal();
+                            inputHasBeenRead.await();
+                            lock.unlock();
                         }
                     }
-                } catch (InterruptedException e) {
+                } catch (IOException e) {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
-                } catch (IOException e) {
+                } catch (InterruptedException e) {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
             }
         });
+        t.setName("InputListener");
         t.setDaemon(true);
         t.start();
     }
@@ -66,21 +79,17 @@ public class InputHandler extends InputStream {
             bytes = text.getBytes(charset);
         }
         textQueue.add(bytes);
-        synchronized (lock) {
-            lock.notify();
-        }
+        inputAvailable.signal();
     }
 
     @Override
     public int read(byte[] b, int off, int len) throws IOException {
-        synchronized (lock) {
+        boolean locked = false;
+        try {
+            lock.lockInterruptibly();
+            locked = true;
             if (currentText == null && textQueue.isEmpty() && defaultInput.available() == 0) {
-                try {
-                    lock.wait();
-                } catch (InterruptedException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
+                inputAvailable.await();
             }
             if (currentText == null && !textQueue.isEmpty()) {
                 currentText = textQueue.poll();
@@ -99,8 +108,14 @@ public class InputHandler extends InputStream {
                 }
                 return toWrite;
             }
-
             return defaultInput.read(b);
+        } catch (InterruptedException e) {
+            throw new IOException("Thread was interupted");
+        } finally {
+            if (locked) {
+                inputHasBeenRead.signal();
+                lock.unlock();
+            }
         }
     }
 
@@ -111,15 +126,14 @@ public class InputHandler extends InputStream {
 
     @Override
     public int read() throws IOException {
-        synchronized (lock) {
+        boolean locked = false;
+        try {
+            lock.lockInterruptibly();
+            locked = true;
             if (currentText == null && textQueue.isEmpty() && defaultInput.available() == 0) {
-                try {
-                    lock.wait();
-                } catch (InterruptedException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
+                inputAvailable.await();
             }
+
             if (currentText != null && position != currentText.length) {
                 return currentText[position++];
             }
@@ -129,6 +143,13 @@ public class InputHandler extends InputStream {
                 return currentText[position++];
             }
             return defaultInput.read();
+        } catch (InterruptedException e) {
+            throw new IOException("Thread was interupted");
+        } finally {
+            if (locked) {
+                inputHasBeenRead.signal();
+                lock.unlock();
+            }
         }
     }
 

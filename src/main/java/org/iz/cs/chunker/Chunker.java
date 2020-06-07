@@ -82,11 +82,8 @@ public class Chunker {
             return;
         }
 
-        InputHandler inputHandler = null;
-        if (Configuration.stop) {
-            inputHandler = new InputHandler(System.in);
-            System.setIn(inputHandler);
-        }
+        InputHandler inputHandler = new InputHandler(System.in);
+        System.setIn(inputHandler);
 
         if (Configuration.supressServerOutput) {
             System.setOut(new OutputHandler());
@@ -123,7 +120,7 @@ public class Chunker {
 
         generateChunks(mapping, loader, dedicatedServer);
 
-        if (inputHandler != null) {
+        if (Configuration.stop) {
             inputHandler.enqueue("stop\n", StandardCharsets.UTF_8);
         }
 
@@ -139,7 +136,8 @@ public class Chunker {
         }
         try (InputStream is = jarFile.getInputStream(versionEntry)) {
             Gson g = new Gson();
-            Map<String, Object> m = (Map<String, Object>) g.fromJson(new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8)), Map.class);
+            Map<String, Object> m = (Map<String, Object>) g.fromJson(
+                    new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8)), Map.class);
 
             return (String) m.get("id");
         } catch (IOException e) {
@@ -147,8 +145,11 @@ public class Chunker {
         }
     }
 
-    private static void generateChunks(Mapping mapping, JarClassLoader loader, Object dedicatedServer)
-            throws Exception {
+    private static void generateChunks(
+            Mapping mapping,
+            JarClassLoader loader,
+            Object dedicatedServer)
+                    throws Exception {
 
         Class<?> mc_s_cl = loader.loadClass(mapping.getClassName(MINECRAFT_SERVER_CN));
         Class<?> rk_cl = loader.loadClass(mapping.getClassName(RESOURCE_KEY_CN));
@@ -174,6 +175,7 @@ public class Chunker {
                 Thread.sleep(pause);
                 count++;
             }
+
             Object level = getLevel_m.invoke(dedicatedServer, overworldLevelKey);
 
             if (level == null) {
