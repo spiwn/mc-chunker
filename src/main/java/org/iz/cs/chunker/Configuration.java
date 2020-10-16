@@ -67,7 +67,6 @@ public class Configuration {
     public static boolean loadConfiguration(Path directory) {
         Path filePath = directory.resolve(PROPERTIES);
 
-
         if (!Files.exists(filePath)) {
             createExampleProperties(filePath);
             return false;

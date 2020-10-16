@@ -15,7 +15,7 @@
  */
 package org.iz.cs.chunker;
 
-import static org.iz.cs.chunker.ConsolePrinter.println;
+import static org.iz.cs.chunker.io.ConsolePrinter.println;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -245,4 +245,5 @@ public class Mapping {
     private static class LazyLoader {
         static Gson gson = new Gson();
     }
+
 }

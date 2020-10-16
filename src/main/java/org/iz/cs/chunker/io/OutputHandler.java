@@ -1,4 +1,4 @@
-package org.iz.cs.chunker;
+package org.iz.cs.chunker.io;
 
 import java.io.IOException;
 import java.io.OutputStream;
