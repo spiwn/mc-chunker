@@ -1,6 +1,7 @@
 package org.iz.cs.chunker.minecraft;
 
 import static org.iz.cs.chunker.io.ConsolePrinter.println;
+import static org.iz.cs.chunker.minecraft.BehaviorManager.BehaviorName.*;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -19,7 +20,6 @@ import org.iz.cs.chunker.JarClassLoader;
 import org.iz.cs.chunker.Mapping;
 import org.iz.cs.chunker.io.InputHandler;
 import org.iz.cs.chunker.io.OutputHandler;
-import org.iz.cs.chunker.minecraft.BehaviorManager.BehaviorName;
 import org.iz.cs.chunker.minecraft.impl.GenerateChunk.GenerateChunkArguments;
 
 import com.google.gson.Gson;
@@ -56,7 +56,7 @@ public class ServerInterface {
         this.inputHandler = inputHandler;
         this.bm = new BehaviorManager(versionId, new ClassCache(mapping, loader), mapping, this);
 
-        String dedicatedServerClassName = (String) bm.get(BehaviorName.GET_DEDICATED_SERVER_CLASS_NAME).apply(null);
+        String dedicatedServerClassName = (String) GET_DEDICATED_SERVER_CLASS_NAME.apply(null, bm);
 
         loader.setClassToDecorate(dedicatedServerClassName);
 
@@ -88,7 +88,7 @@ public class ServerInterface {
     }
 
     public Boolean isServerReady() {
-        return (Boolean) bm.get(BehaviorName.IS_SERVER_READY).apply(null);
+        return (Boolean) IS_SERVER_READY.apply(null, bm);
     }
 
     public void generateChunk(String dimension, int x1, int x2, int z1, int z2) {
@@ -118,7 +118,7 @@ public class ServerInterface {
             for (int j = z1; j <= z2; j++) {
                 args.setX(x1);
                 args.setZ(z1);
-                bm.get(BehaviorName.GENERATE_CHUNK).apply(args);
+                GENERATE_CHUNK.apply(args, bm);
                 if (++counter == step) {
                     counter = 0;
                     progress += percentIncrement;
@@ -172,7 +172,7 @@ public class ServerInterface {
         }
     }
 
-    public static ServerInterface fromJar(Path pathToJar, String[] args) throws Exception {
+    public static ServerInterface fromJar(Path pathToJar) throws Exception {
 
         InputHandler inputHandler = new InputHandler(System.in);
         System.setIn(inputHandler);

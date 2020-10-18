@@ -36,6 +36,7 @@ public class Configuration {
     public static String mapping = null;
     public static String[] dimensions = null;
     public static Boolean stop = null;
+    public static Boolean defaultBehaviors = null;
 
     public static Boolean supressServerOutput = null;
     private static final String SUPPRESS_SERVER_OUTPUT = "suppress-server-output";
@@ -46,6 +47,7 @@ public class Configuration {
         defaults.setProperty("dimension", "OVERWORLD");
         defaults.setProperty("stop", "false");
         defaults.setProperty(SUPPRESS_SERVER_OUTPUT, "false");
+        defaults.setProperty("default-behaviors", "false");
         return defaults;
     }
 
@@ -79,6 +81,12 @@ public class Configuration {
             throw new IllegalStateException("Error reading " + PROPERTIES);
         }
 
+        parseProperties(props);
+
+        return true;
+    }
+
+    private static void parseProperties(Properties props) {
         x1 = getInteger(props, "x1");
         z1 = getInteger(props, "z1");
         x2 = getInteger(props, "x2");
@@ -110,7 +118,7 @@ public class Configuration {
         stop = Boolean.valueOf(props.getProperty("stop"));
         supressServerOutput = Boolean.valueOf(props.getProperty(SUPPRESS_SERVER_OUTPUT));
 
-        return true;
+        defaultBehaviors = Boolean.valueOf(props.getProperty("default-behaviors"));
     }
 
     private static int getInteger(Properties props, String key) {

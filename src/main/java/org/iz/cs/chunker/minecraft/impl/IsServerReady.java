@@ -1,5 +1,7 @@
 package org.iz.cs.chunker.minecraft.impl;
 
+import static org.iz.cs.chunker.minecraft.BehaviorManager.BehaviorName.GET_DEDICATED_SERVER_INSTANCE;
+
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
@@ -7,7 +9,6 @@ import java.util.Map;
 import org.iz.cs.chunker.minecraft.Behavior;
 import org.iz.cs.chunker.minecraft.BehaviorContainer;
 import org.iz.cs.chunker.minecraft.Constants;
-import org.iz.cs.chunker.minecraft.BehaviorManager.BehaviorName;
 
 public class IsServerReady extends BehaviorContainer {
 
@@ -15,11 +16,11 @@ public class IsServerReady extends BehaviorContainer {
     @SuppressWarnings("rawtypes")
     public Map<String, Class> getBehaviors() {
         Map<String, Class> result = new HashMap<>();
-        result.put("1.15.2", I_1_15_2.class);
+        result.put("1.14.4", I_1_14_4.class);
         return result;
     }
 
-    public static class I_1_15_2 extends Behavior<Void, Boolean> {
+    public static class I_1_14_4 extends Behavior<Void, Boolean> {
 
         @Override
         public boolean checkMappings() {
@@ -50,12 +51,10 @@ public class IsServerReady extends BehaviorContainer {
             }
         }
 
-        @SuppressWarnings("unchecked")
         @Override
         public Boolean apply(Void v) {
-            Behavior<Void, Object> getDedicatedServer = behaviorManager.get(BehaviorName.GET_DEDICATED_SERVER_INSTANCE);
             try {
-                Object dedicatedServer = getDedicatedServer.apply(null);
+                Object dedicatedServer = applyOther(GET_DEDICATED_SERVER_INSTANCE, null);
                 if (dedicatedServer == null) {
                     server.serverRunning = false;
                     throw new IllegalArgumentException("Server seems to have not been started");

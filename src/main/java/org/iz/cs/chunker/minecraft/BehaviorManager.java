@@ -7,11 +7,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.iz.cs.chunker.Configuration;
 import org.iz.cs.chunker.Mapping;
-import org.iz.cs.chunker.minecraft.impl.GenerateChunk;
-import org.iz.cs.chunker.minecraft.impl.GetDedicatedServerClassName;
-import org.iz.cs.chunker.minecraft.impl.GetDedicatedServerInstance;
-import org.iz.cs.chunker.minecraft.impl.IsServerReady;
+import org.iz.cs.chunker.minecraft.impl.*;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class BehaviorManager {
@@ -22,6 +20,9 @@ public class BehaviorManager {
         GET_DEDICATED_SERVER_CLASS_NAME(new GetDedicatedServerClassName()),
         GET_DEDICATED_SERVER_INSTANCE(new GetDedicatedServerInstance()),
         GENERATE_CHUNK(new GenerateChunk()),
+        GET_LEVEL(new GetLevel()),
+        GET_LEVEL_KEY(new GetLevelKey()),
+        MAP_DIMENSION(new MapDimension()),
         ;
 
         private BehaviorContainer behaviorContainer;
@@ -32,6 +33,10 @@ public class BehaviorManager {
 
         public BehaviorContainer getBehaviorContainer() {
             return behaviorContainer;
+        }
+
+        public Object apply(Object arg, BehaviorManager bm) {
+            return bm.get(this).apply(arg);
         }
 
     }
@@ -53,18 +58,41 @@ public class BehaviorManager {
         this.behaviorCache = new EnumMap<>(BehaviorName.class);
     }
 
-    public Behavior get(BehaviorName behaviorName) {
+    private Behavior get(BehaviorName behaviorName) {
         Behavior result = this.behaviorCache.get(behaviorName);
         if (result == null) {
             Class<? extends Behavior> last = null;
+            String lastVersion = null;
+
+            String minVersion = null;
+            Class<? extends Behavior> min = null;
+
             for (Entry<String, Map<BehaviorName, Class<? extends Behavior>>> entry : LazyLoader.versionMap.entrySet()) {
-                if (VersionUtils.compare(entry.getKey(), this.version) > 0) {
-                    break;
-                }
                 Class<? extends Behavior> next = entry.getValue().get(behaviorName);
-                if (next != null) {
-                    last = next;
+                if (next == null) {
+                    continue;
                 }
+
+                if (min == null || VersionUtils.compare(minVersion, entry.getKey()) > 0) {
+                    min = next;
+                    minVersion = entry.getKey();
+                }
+
+                if (VersionUtils.compare(entry.getKey(), this.version) > 0) {
+                    continue;
+                }
+                if (last != null && VersionUtils.compare(entry.getKey(), lastVersion) < 0) {
+                    continue;
+                }
+                last = next;
+                lastVersion = entry.getKey();
+            }
+            if (last == null && Configuration.defaultBehaviors && min != null) {
+                last = min;
+            }
+
+            if (last == null) {
+                throw new IllegalStateException(behaviorName.name() + " " + this.version);
             }
             result = newInstance(last);
             this.behaviorCache.put(behaviorName, result);
@@ -105,6 +133,10 @@ public class BehaviorManager {
             result = result & get(behaviorName).checkClasses();
         }
         return result;
+    }
+
+    public String getVersion() {
+        return version;
     }
 
     private static class LazyLoader {

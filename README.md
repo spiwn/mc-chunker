@@ -55,15 +55,14 @@ server not starting because you have not agreed to the EULA yet.
 - MC-Chunker is not compatible with older versions
 
 ### Minecraft version compatability
-Currently only Snapshot 20w22a through 1.16.2_rc2 have been tested (not exhaustively). Other
-snapshots might work, but they have not been tested yet.
+Supports 1.14.4 and 19w36a through 1.16.4-pre1. Newer versions may work without modifications.
 
 ### Planned features
 
-- Compatibility with more Minecraft versions. This may include older versions depending
+- ~~Compatibility with more Minecraft versions. This may include older versions depending
 on how much work is required for compatibility, but there are no plans for compatibility
 with versions older than Snapshot 19w36a (the first to include obfuscation mappings; this is
-a snapshot for 1.15) and including 1.14.4
+a snapshot for 1.15) and including 1.14.4~~
 - ~~Option to stop server when chunk generation is done~~
 - ~~Properly handle server not starting~~
 - Throttling of the generation speed

@@ -79,7 +79,7 @@ public class Chunker {
 
         Thread.currentThread().setUncaughtExceptionHandler(new UncaughtExceptionHandlerImplementation());
 
-        server = ServerInterface.fromJar(serverJarPath, args);
+        server = ServerInterface.fromJar(serverJarPath);
 
         String[] serverArgs = new String[args.length - 1];
         System.arraycopy(args, 1, serverArgs, 0, serverArgs.length);

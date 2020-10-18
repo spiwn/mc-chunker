@@ -16,6 +16,7 @@ public class ClassCache {
         this.mapping = mapping;
         this.loader = loader;
         this.cache = new HashMap<>();
+        this.cache.put("int", int.class);
     }
 
     public Class<?> get(String className) {

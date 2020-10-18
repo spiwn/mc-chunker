@@ -1,10 +1,10 @@
 package org.iz.cs.chunker.minecraft;
 
-import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.function.Function;
 
 import org.iz.cs.chunker.Mapping;
+import org.iz.cs.chunker.minecraft.BehaviorManager.BehaviorName;
 
 public abstract class Behavior<T, R> implements Function<T, R> {
 
@@ -37,6 +37,11 @@ public abstract class Behavior<T, R> implements Function<T, R> {
         this.server = server;
     }
 
+    @SuppressWarnings("unchecked")
+    protected Object applyOther(BehaviorName behavior, Object arg) {
+        return behavior.apply(arg, behaviorManager);
+    }
+
     protected void validateClass(String className) {
         if (classCache.get(className) == null) {
             throw new CompatibilityException("Class not found " + className);
@@ -45,7 +50,7 @@ public abstract class Behavior<T, R> implements Function<T, R> {
 
     protected void validateField(String className, String fieldName) {
         try {
-            if (classCache.get(className).getField(fieldName) == null) {
+            if (classCache.get(className).getDeclaredField(mapping.getField(className, fieldName)) == null) {
                 throw new CompatibilityException("Field "+ fieldName + " not found in class" + className);
             }
         } catch (NoSuchFieldException | SecurityException e) {
@@ -55,7 +60,7 @@ public abstract class Behavior<T, R> implements Function<T, R> {
 
     protected void validateMethod(String className, String methodName) {
         try {
-            if (classCache.get(className).getMethod(methodName) == null) {
+            if (classCache.get(className).getDeclaredMethod(mapping.getMethod(className, methodName)) == null) {
                 throw new CompatibilityException("Method " + methodName + " not found in class" + className);
             }
         } catch (SecurityException  | NoSuchMethodException e) {
@@ -70,7 +75,10 @@ public abstract class Behavior<T, R> implements Function<T, R> {
             for (int i = 0; i < parameters.length; i++) {
                 params[i] = classCache.get(parameters[i]);
             }
-            if (classCache.get(className).getMethod(methodName, params) == null) {
+            if (classCache.get(className)
+                    .getDeclaredMethod(
+                            mapping.getMethod(className, methodName, parameters),
+                            params) == null) {
                 throw new CompatibilityException("Method " + methodName
                         + "(" + Arrays.toString(parameters)+ ") not found in class" + className);
             }
@@ -83,28 +91,28 @@ public abstract class Behavior<T, R> implements Function<T, R> {
 
 
     protected void validateClassMapping(String className) {
-        if (mapping.getClassName(className) == null) {
+        if (!mapping.checkClass(className)) {
             throw new CompatibilityException("Class not found in mapping: " + className);
         }
     }
 
     protected void validateFieldMapping(String className, String fieldName) {
         if (mapping.getField(className, fieldName) == null) {
-            throw new CompatibilityException("Field " + fieldName + " not found in class " + className);
+            throw new CompatibilityException("Field " + fieldName + " mapping not found in class " + className);
         }
 
     }
 
     protected void validateMethoMapping(String className, String methodName) {
         if (mapping.getMethod(className, methodName) == null) {
-            throw new CompatibilityException("Method " + methodName + " not found in class " + className);
+            throw new CompatibilityException("Method " + methodName + " mapping not found in class " + className);
         }
     }
 
     protected void validateMethodMapping(String className, String methodName, String...parameters) {
         if (mapping.getMethod(className, methodName, parameters) == null) {
             throw new CompatibilityException("Method " + methodName
-                    + "(" + Arrays.toString(parameters)+ ") not found in class " + className);
+                    + "(" + Arrays.toString(parameters)+ ") mapping not found in class " + className);
         }
     }
 

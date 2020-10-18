@@ -31,8 +31,6 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.iz.cs.chunker.minecraft.Constants;
-
 import com.google.gson.Gson;
 
 public class Mapping {
@@ -63,6 +61,10 @@ public class Mapping {
 
     public String getMethod(String originalClass, String originalMethod) {
         return map.get(originalClass).get(METHOD + " " + originalMethod);
+    }
+
+    public boolean checkClass(String originalClass) {
+        return map.containsKey(originalClass);
     }
 
     public String getMethod(String originalClass, String originalMethod, String...parameters) {
@@ -209,24 +211,6 @@ public class Mapping {
     }
 
     private static Mapping loadMapping(Path mappingPath) throws IOException {
-        Pattern fieldPattern = Pattern.compile(
-                "\\s+"
-                + "(?<type>[a-zA-Z0-9_$.]+(?:\\[\\])*)"
-                + " "
-                + "(?<name>[$a-zA-Z0-9_]+)"
-                + " -> "
-                + "(?<obfuscatedName>[a-zA-Z0-9_]+)");
-        Pattern methodPattern = Pattern.compile(
-                "\\s+"
-                + "(?:\\d+:\\d+:)?"
-                + "(?<retunType>[a-zA-Z0-9_$.]+(?:\\[\\])*)"
-                + " "
-                + "(?<name>[a-zA-Z0-9_$<>]+)"
-                + "\\("
-                + "(?<parameters>(?:[a-zA-Z0-9_$.]+(?:\\[\\])*)?(?:,[a-zA-Z0-9_$.]+(?:\\[\\])*)*)"
-                + "\\)"
-                + " -> "
-                + "(?<obfuscatedName>[a-zA-Z0-9_$<>]+)");
 
         Map<String, Map<String, String>> mapping = new HashMap<>();
         try (BufferedReader br = Files.newBufferedReader(mappingPath)) {
@@ -237,13 +221,13 @@ public class Mapping {
                     continue;
                 }
                 if (line.startsWith(" ")) {
-                    Matcher matcher = fieldPattern.matcher(line);
+                    Matcher matcher = LazyLoader.fieldPattern.matcher(line);
                     boolean isField = matcher.matches();
                     if (isField) {
                         currentClassMap.put(FIELD + " " + matcher.group("name"), matcher.group("obfuscatedName"));
                         continue;
                     }
-                    matcher = methodPattern.matcher(line);
+                    matcher = LazyLoader.methodPattern.matcher(line);
                     boolean isMethod = matcher.matches();
                     if (isMethod) {
                         String parameters = matcher.group("parameters");
@@ -267,6 +251,25 @@ public class Mapping {
 
     private static class LazyLoader {
         static Gson gson = new Gson();
+
+        static Pattern fieldPattern = Pattern.compile(
+                "\\s+"
+                + "(?<type>[a-zA-Z0-9_$.]+(?:\\[\\])*)"
+                + " "
+                + "(?<name>[$a-zA-Z0-9_]+)"
+                + " -> "
+                + "(?<obfuscatedName>[a-zA-Z0-9_]+)");
+        static Pattern methodPattern = Pattern.compile(
+                "\\s+"
+                + "(?:\\d+:\\d+:)?"
+                + "(?<retunType>[a-zA-Z0-9_$.]+(?:\\[\\])*)"
+                + " "
+                + "(?<name>[a-zA-Z0-9_$<>]+)"
+                + "\\("
+                + "(?<parameters>(?:[a-zA-Z0-9_$.]+(?:\\[\\])*)?(?:,[a-zA-Z0-9_$.]+(?:\\[\\])*)*)"
+                + "\\)"
+                + " -> "
+                + "(?<obfuscatedName>[a-zA-Z0-9_$<>]+)");
     }
 
 }

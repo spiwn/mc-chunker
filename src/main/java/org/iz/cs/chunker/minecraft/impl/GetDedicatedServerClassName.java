@@ -13,11 +13,11 @@ public class GetDedicatedServerClassName extends BehaviorContainer {
     @SuppressWarnings("rawtypes")
     public Map<String, Class> getBehaviors() {
         Map<String, Class> result = new HashMap<>();
-        result.put("1.15.2", I_1_15_2.class);
+        result.put("1.14.4", I_1_14_4.class);
         return result;
     }
 
-    public static class I_1_15_2 extends Behavior<Void, String> {
+    public static class I_1_14_4 extends Behavior<Void, String> {
 
         @Override
         public boolean checkMappings() {

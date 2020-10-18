@@ -144,7 +144,8 @@ public class JarClassLoader extends URLClassLoader implements ClassPath {
     }
 
     private byte[] decorate(String name, byte[] classFile) throws Exception {
-        ClassPool cp = ClassPool.getDefault();
+        ClassPool cp = new ClassPool();
+
         cp.insertClassPath(new ByteArrayClassPath(name, classFile));
         cp.insertClassPath(this);
         cp.appendSystemPath();
