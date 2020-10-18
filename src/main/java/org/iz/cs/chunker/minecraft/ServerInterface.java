@@ -44,7 +44,7 @@ public class ServerInterface {
 
     private static final String SERVER_THREAD_NAME = "Server thread";
 
-    public static volatile boolean serverRunning = false;
+    public volatile boolean serverRunning = false;
 
     private InputHandler inputHandler;
     private JarClassLoader loader;
@@ -59,6 +59,10 @@ public class ServerInterface {
         String dedicatedServerClassName = (String) bm.get(BehaviorName.GET_DEDICATED_SERVER_CLASS_NAME).apply(null);
 
         loader.setClassToDecorate(dedicatedServerClassName);
+
+        // Fail early;
+        bm.checkMappings();
+        bm.checkClasses();
     }
 
     public void startServer(String[] args) throws Exception {
@@ -84,7 +88,7 @@ public class ServerInterface {
     }
 
     public Boolean isServerReady() {
-        return (Boolean) bm.get(BehaviorName.IS_DIMENSION_READY).apply(null);
+        return (Boolean) bm.get(BehaviorName.IS_SERVER_READY).apply(null);
     }
 
     public void generateChunk(String dimension, int x1, int x2, int z1, int z2) {

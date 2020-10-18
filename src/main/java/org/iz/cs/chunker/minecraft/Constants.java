@@ -10,4 +10,6 @@ public interface Constants {
     String LEVEL_KEYS_M = "levelKeys";
     String IS_READY_F = "isReady";
     String RESOURCE_KEY_CN = "net.minecraft.resources.ResourceKey";
+
+    String INSTANCE = "instance";
 }

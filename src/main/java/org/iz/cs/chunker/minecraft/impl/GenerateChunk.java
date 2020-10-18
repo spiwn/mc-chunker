@@ -6,11 +6,22 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.iz.cs.chunker.Chunker;
 import org.iz.cs.chunker.minecraft.Behavior;
+import org.iz.cs.chunker.minecraft.BehaviorContainer;
 import org.iz.cs.chunker.minecraft.Constants;
 import org.iz.cs.chunker.minecraft.BehaviorManager.BehaviorName;
+import org.iz.cs.chunker.minecraft.CompatibilityException;
 
-public interface GenerateChunk {
+public class GenerateChunk extends BehaviorContainer {
+
+    @Override
+    @SuppressWarnings("rawtypes")
+    public Map<String, Class> getBehaviors() {
+        Map<String, Class> result = new HashMap<>();
+        result.put("1.15.2", I_1_15_2.class);
+        return result;
+    }
 
     public static class GenerateChunkArguments {
         String dimension;
@@ -40,6 +51,36 @@ public interface GenerateChunk {
         private Map<String, Object> levelCache;
 
         @Override
+        public boolean checkMappings() {
+            validateClassMapping(Constants.LEVEL_CN);
+            validateClassMapping(Constants.MINECRAFT_SERVER_CN);
+            validateMethodMapping(
+                    Constants.MINECRAFT_SERVER_CN,
+                    Constants.GET_LEVEL_M,
+                    Constants.RESOURCE_KEY_CN);
+            validateClassMapping(Constants.RESOURCE_KEY_CN);
+            for (String dimension:Chunker.DIMENSIONS) {
+                validateFieldMapping(Constants.LEVEL_CN, dimension);
+            }
+            return true;
+        }
+
+        @Override
+        public boolean checkClasses() {
+            validateClass(Constants.LEVEL_CN);
+            validateClass(Constants.MINECRAFT_SERVER_CN);
+            validateMethod(
+                    Constants.MINECRAFT_SERVER_CN,
+                    Constants.GET_LEVEL_M,
+                    Constants.RESOURCE_KEY_CN);
+            validateClass(Constants.RESOURCE_KEY_CN);
+            for (String dimension:Chunker.DIMENSIONS) {
+                validateField(Constants.LEVEL_CN, dimension);
+            }
+            return true;
+        }
+
+        @Override
         protected void bootstrap() {
             levelCache = new HashMap<>();
             Class<?> level_cl = classCache.get(Constants.LEVEL_CN);
@@ -54,6 +95,7 @@ public interface GenerateChunk {
                         int.class);
                 Class<?> mc_s_cl = classCache.get(Constants.MINECRAFT_SERVER_CN);
                 Class<?> rk_cl = classCache.get(Constants.RESOURCE_KEY_CN);
+
                 getLevel_m = mc_s_cl.getMethod(
                         mapping.getMethod(
                                 Constants.MINECRAFT_SERVER_CN,

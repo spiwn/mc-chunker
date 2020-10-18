@@ -26,6 +26,8 @@ import java.net.URLConnection;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 
+import org.iz.cs.chunker.minecraft.Constants;
+
 import javassist.ByteArrayClassPath;
 import javassist.ClassPath;
 import javassist.ClassPool;
@@ -153,7 +155,7 @@ public class JarClassLoader extends URLClassLoader implements ClassPath {
         sc.addField(field);
 
         for (CtConstructor scc : sc.getDeclaredConstructors()) {
-            scc.insertAfter("this.instance = this;");
+            scc.insertAfter("this." + Constants.INSTANCE + " = this;");
         }
 
         byte[] bc = sc.toBytecode();

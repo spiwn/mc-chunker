@@ -16,18 +16,15 @@
 package org.iz.cs.chunker;
 
 import static org.iz.cs.chunker.io.ConsolePrinter.println;
+import static org.iz.cs.chunker.io.UrlDownloader.downloadToFile;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.MalformedURLException;
-import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +32,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.iz.cs.chunker.minecraft.Constants;
-import org.iz.cs.chunker.minecraft.VersionUtils;
 
 import com.google.gson.Gson;
 
@@ -87,23 +83,13 @@ public class Mapping {
 
     public static Mapping getMappingFor(String versionId) {
         try {
-            Mapping result = getMappingForInternal(versionId);
-            result.checkIdentifiers();
-            return result;
+            return getMappingForInternal(versionId);
         } catch (MalformedURLException | URISyntaxException e) {
             // This should not happen
             throw new IllegalStateException("A URL was invalid");
         } catch (InterruptedException e) {
             throw new IllegalStateException("Interupted while loading the mapping", e);
         }
-    }
-
-    private void checkIdentifiers() {
-        getClassName(Constants.DEDICATED_SERVER_CN).length();
-        getClassName(Constants.MINECRAFT_SERVER_CN).length();
-        getMethod(Constants.MINECRAFT_SERVER_CN, Constants.GET_LEVEL_M, Constants.RESOURCE_KEY_CN).length();
-        getMethod(Constants.MINECRAFT_SERVER_CN, Constants.LEVEL_KEYS_M).length();
-        getClassName(Constants.RESOURCE_KEY_CN).length();
     }
 
     private static Mapping getMappingForInternal(String versionId)
@@ -220,17 +206,6 @@ public class Mapping {
         } catch (IOException e) {
             throw new IllegalStateException("Could not read " + VERSION_MANIFEST_JSON + " file", e);
         }
-    }
-
-    private static void downloadToFile(String urlString, Path filePath)
-            throws URISyntaxException, InterruptedException, MalformedURLException {
-        URL url = new URI(urlString).toURL();
-        try (InputStream is = url.openStream()) {
-            Files.copy(is, filePath, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            throw new IllegalStateException("Error downloading file from " + url, e);
-        }
-
     }
 
     private static Mapping loadMapping(Path mappingPath) throws IOException {

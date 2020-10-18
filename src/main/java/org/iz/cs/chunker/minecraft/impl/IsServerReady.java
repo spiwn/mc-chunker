@@ -1,14 +1,39 @@
 package org.iz.cs.chunker.minecraft.impl;
 
 import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.iz.cs.chunker.minecraft.Behavior;
+import org.iz.cs.chunker.minecraft.BehaviorContainer;
 import org.iz.cs.chunker.minecraft.Constants;
 import org.iz.cs.chunker.minecraft.BehaviorManager.BehaviorName;
 
-public interface IsServerReady {
+public class IsServerReady extends BehaviorContainer {
+
+    @Override
+    @SuppressWarnings("rawtypes")
+    public Map<String, Class> getBehaviors() {
+        Map<String, Class> result = new HashMap<>();
+        result.put("1.15.2", I_1_15_2.class);
+        return result;
+    }
 
     public static class I_1_15_2 extends Behavior<Void, Boolean> {
+
+        @Override
+        public boolean checkMappings() {
+            validateClassMapping(Constants.MINECRAFT_SERVER_CN);
+            validateFieldMapping(Constants.MINECRAFT_SERVER_CN, Constants.IS_READY_F);
+            return true;
+        }
+
+        @Override
+        public boolean checkClasses() {
+            validateClass(Constants.MINECRAFT_SERVER_CN);
+            validateField(Constants.MINECRAFT_SERVER_CN, Constants.IS_READY_F);
+            return true;
+        }
 
 
         private Class<?> mc_server_cl;
@@ -25,6 +50,7 @@ public interface IsServerReady {
             }
         }
 
+        @SuppressWarnings("unchecked")
         @Override
         public Boolean apply(Void v) {
             Behavior<Void, Object> getDedicatedServer = behaviorManager.get(BehaviorName.GET_DEDICATED_SERVER_INSTANCE);
