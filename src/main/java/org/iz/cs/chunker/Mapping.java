@@ -34,6 +34,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.iz.cs.chunker.minecraft.Constants;
+import org.iz.cs.chunker.minecraft.VersionUtils;
+
 import com.google.gson.Gson;
 
 public class Mapping {
@@ -45,6 +48,8 @@ public class Mapping {
     private static final String NAME = ".name";
     private static final String METHOD = "m";
     private static final String FIELD = "f";
+
+    private static volatile Map<String, Object> cachedManifest;
 
     private Map<String, Map<String, String>> map;
 
@@ -82,7 +87,9 @@ public class Mapping {
 
     public static Mapping getMappingFor(String versionId) {
         try {
-            return getMappingForInternal(versionId);
+            Mapping result = getMappingForInternal(versionId);
+            result.checkIdentifiers();
+            return result;
         } catch (MalformedURLException | URISyntaxException e) {
             // This should not happen
             throw new IllegalStateException("A URL was invalid");
@@ -91,9 +98,17 @@ public class Mapping {
         }
     }
 
+    private void checkIdentifiers() {
+        getClassName(Constants.DEDICATED_SERVER_CN).length();
+        getClassName(Constants.MINECRAFT_SERVER_CN).length();
+        getMethod(Constants.MINECRAFT_SERVER_CN, Constants.GET_LEVEL_M, Constants.RESOURCE_KEY_CN).length();
+        getMethod(Constants.MINECRAFT_SERVER_CN, Constants.LEVEL_KEYS_M).length();
+        getClassName(Constants.RESOURCE_KEY_CN).length();
+    }
+
     private static Mapping getMappingForInternal(String versionId)
             throws URISyntaxException, InterruptedException, MalformedURLException {
-        Path chunkerPath = Paths.get(".", CHUNKER_FOLDER);
+        Path chunkerPath = getChunkerPath();
 
         try {
             Files.createDirectories(chunkerPath);
@@ -101,19 +116,10 @@ public class Mapping {
             throw new IllegalStateException("Could not create chunker directory");
         }
 
-        Path manifestPath = chunkerPath.resolve(VERSION_MANIFEST_JSON);
-        boolean hasVersionsManifest = Files.exists(manifestPath);
-        boolean downloadedManifest = false;
-        if (!hasVersionsManifest) {
-            println("Downloading versions manifest");
-            downloadToFile(VERSIONS_MANIFEST_URL, manifestPath);
-            downloadedManifest = true;
-        }
-
         Path clientJsonPath = chunkerPath.resolve("client_" + versionId + ".json");
         boolean hasClientJson = Files.exists(clientJsonPath);
         if (!hasClientJson) {
-            String clientJsonUrl = getClientJsonUrl(versionId, manifestPath, downloadedManifest);
+            String clientJsonUrl = getClientJsonUrl(versionId, false);
             println("Downloading client.json for " + versionId);
             downloadToFile(clientJsonUrl, clientJsonPath);
         }
@@ -133,6 +139,14 @@ public class Mapping {
         }
     }
 
+    private static Path getChunkerPath() {
+        return Paths.get(".", CHUNKER_FOLDER);
+    }
+
+    private static Path getManifestJsonPath() {
+        return getChunkerPath().resolve(VERSION_MANIFEST_JSON);
+    }
+
     @SuppressWarnings({ "unchecked" })
     private static String getMappingUrl(Path clientJsonPath) {
         try (BufferedReader reader = Files.newBufferedReader(clientJsonPath)) {
@@ -146,29 +160,63 @@ public class Mapping {
     }
 
     @SuppressWarnings("unchecked")
-    private static String getClientJsonUrl(String versionId, Path manifestPath, boolean forced)
+    private static String getClientJsonUrl(String versionId, boolean forced)
             throws URISyntaxException, InterruptedException {
-        try (BufferedReader reader = Files.newBufferedReader(manifestPath)) {
-            Map<String, Object> manifest = LazyLoader.gson.fromJson(reader, Map.class);
-            List<Object> versionsList = (List<Object>) manifest.get("versions");
-            Map<String, Object> version = null;
-            for (Object object : versionsList) {
-                Map<String, Object> current = (Map<String, Object>) object;
-                if (current.get("id").equals(versionId)) {
-                    version = current;
-                    break;
-                }
+        Map<String, Object> manifest = readManifestJson();
+        List<Object> versionsList = (List<Object>) manifest.get("versions");
+        Map<String, Object> version = null;
+        for (Object object : versionsList) {
+            Map<String, Object> current = (Map<String, Object>) object;
+            if (current.get("id").equals(versionId)) {
+                version = current;
+                break;
             }
-            if (version == null) {
-                if (forced) {
-                    // I am too lazy to handle this in a better way
-                    throw new IllegalStateException("Version not found. It may not be supported");
-                }
-                downloadToFile(VERSIONS_MANIFEST_URL, manifestPath);
-                return getClientJsonUrl(versionId, manifestPath, true);
+        }
+        if (version == null) {
+            if (forced) {
+                // I am too lazy to handle this in a better way
+                throw new IllegalArgumentException("Version not found. It may not be supported: " + versionId);
             }
+            try {
+                downloadToFile(VERSIONS_MANIFEST_URL, getManifestJsonPath());
+            } catch (IOException e) {
+                throw new IllegalStateException("Could not read " + VERSION_MANIFEST_JSON + " file", e);
+            }
+            return getClientJsonUrl(versionId, true);
+        }
 
-            return (String) version.get("url");
+        return (String) version.get("url");
+
+    }
+
+    private static void downloadManifest() {
+        println("Downloading versions manifest");
+        cachedManifest = null;
+        try {
+            downloadToFile(VERSIONS_MANIFEST_URL, getManifestJsonPath());
+        } catch (MalformedURLException | URISyntaxException | InterruptedException e) {
+            throw new IllegalStateException("Could not download manifest", e);
+        }
+
+    }
+
+    public static Map<String, Object> readManifestJson() {
+        if (cachedManifest != null) {
+            return cachedManifest;
+        }
+
+        Path manifestPath = getManifestJsonPath();
+        if (!Files.exists(manifestPath)) {
+            downloadManifest();
+        }
+
+        try (BufferedReader reader = Files.newBufferedReader(getManifestJsonPath())) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> result = LazyLoader.gson.fromJson(reader, Map.class);
+            if (result != null) {
+                cachedManifest = result;
+            }
+            return result;
         } catch (IOException e) {
             throw new IllegalStateException("Could not read " + VERSION_MANIFEST_JSON + " file", e);
         }

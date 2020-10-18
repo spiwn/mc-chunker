@@ -16,7 +16,7 @@ public abstract class Behavior<T, R> implements Function<T, R> {
     }
 
     protected void bootstrap() {
-
+        //optional
     }
 
     void init(BehaviorManager behaviorManager, ClassCache classCache, Mapping mapping) {

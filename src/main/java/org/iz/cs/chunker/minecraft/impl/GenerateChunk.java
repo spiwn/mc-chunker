@@ -6,10 +6,7 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.iz.cs.chunker.Mapping;
 import org.iz.cs.chunker.minecraft.Behavior;
-import org.iz.cs.chunker.minecraft.BehaviorManager;
-import org.iz.cs.chunker.minecraft.ClassCache;
 import org.iz.cs.chunker.minecraft.Constants;
 import org.iz.cs.chunker.minecraft.BehaviorManager.BehaviorName;
 
@@ -78,7 +75,10 @@ public interface GenerateChunk {
 
                     Object overworldLevelKey = level_dimension_f.get(null);
 
-                    level = getLevel_m.invoke(behaviorManager.get(BehaviorName.GET_DEDICATED_SERVER_INSTANCE).apply(null), overworldLevelKey);
+                    level = getLevel_m.invoke(
+                            behaviorManager.get(
+                                    BehaviorName.GET_DEDICATED_SERVER_INSTANCE).apply(null),
+                                    overworldLevelKey);
                     if (level == null) {
                         throw new IllegalStateException("Server did not load level " + t.dimension);
                     }

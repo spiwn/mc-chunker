@@ -31,12 +31,12 @@ public class ServerInterface {
 //  private static String GET_STATUS_M = "getStatus";
 //    private static final String LEVEL_CN = "net.minecraft.world.level.Level";
 //    private static final String GET_CHUNK_M = "getChunk";
-    private static final String DEDICATED_SERVER_CN = "net.minecraft.server.dedicated.DedicatedServer";
-    private static final String MINECRAFT_SERVER_CN = "net.minecraft.server.MinecraftServer";
-    private static final String GET_LEVEL_M = "getLevel";
-    private static final String LEVEL_KEYS_M = "levelKeys";
+//    private static final String DEDICATED_SERVER_CN = "net.minecraft.server.dedicated.DedicatedServer";
+//    private static final String MINECRAFT_SERVER_CN = "net.minecraft.server.MinecraftServer";
+//    private static final String GET_LEVEL_M = "getLevel";
+//    private static final String LEVEL_KEYS_M = "levelKeys";
 //    private static final String IS_READY_F = "isReady";
-    private static final String RESOURCE_KEY_CN = "net.minecraft.resources.ResourceKey";
+//    private static final String RESOURCE_KEY_CN = "net.minecraft.resources.ResourceKey";
 //  private static String LOCATION_M = "location";
 //  private static String RESOURCE_LOCATION_CN = "net.minecraft.resources.ResourceLocation";
 //  private static String GET_PATH_M = "getPath";
@@ -50,7 +50,6 @@ public class ServerInterface {
         this.inputHandler = inputHandler;
         this.bm = new BehaviorManager(versionId, new ClassCache(mapping, loader), mapping);
 
-        checkIdentifiers(mapping);
         String dedicatedServerClassName = (String) bm.get(BehaviorName.GET_DEDICATED_SERVER_CLASS_NAME).apply(null);
 
         loader.setClassToDecorate(dedicatedServerClassName);
@@ -130,14 +129,6 @@ public class ServerInterface {
         inputHandler.enqueue("stop\n", StandardCharsets.UTF_8);
     }
 
-    public void checkIdentifiers(Mapping mapping) {
-        mapping.getClassName(DEDICATED_SERVER_CN).length();
-        mapping.getClassName(MINECRAFT_SERVER_CN).length();
-        mapping.getMethod(MINECRAFT_SERVER_CN, GET_LEVEL_M, RESOURCE_KEY_CN).length();
-        mapping.getMethod(MINECRAFT_SERVER_CN, LEVEL_KEYS_M).length();
-        mapping.getClassName(RESOURCE_KEY_CN).length();
-    }
-
     @SuppressWarnings("unchecked")
     private static String getServerVersionId(JarFile jarFile) {
         JarEntry versionEntry = jarFile.getJarEntry("version.json");
@@ -169,6 +160,11 @@ public class ServerInterface {
 
         JarFile jarFile = loader.getJarFile();
         String versionId = getServerVersionId(jarFile);
+
+        if (!VersionUtils.isSupported(versionId)) {
+            loader.close();
+            throw new IllegalArgumentException("Version not supported: " + versionId);
+        }
 
         Mapping mapping = Mapping.getMappingFor(versionId);
 

@@ -53,10 +53,9 @@ public class BehaviorManager {
     public Behavior get(BehaviorName behaviorName) {
         Behavior result = this.behaviorCache.get(behaviorName);
         if (result == null) {
-            //TODO: implement proper version comparison
             Class<? extends Behavior> last = null;
             for (Entry<String, Map<BehaviorName, Class<? extends Behavior>>> entry : versionMap.entrySet()) {
-                if (entry.getKey().compareTo(this.version) > 0) {
+                if (VersionUtils.compare(entry.getKey(), this.version) > 0) {
                     break;
                 }
                 Class<? extends Behavior> next = entry.getValue().get(behaviorName);
