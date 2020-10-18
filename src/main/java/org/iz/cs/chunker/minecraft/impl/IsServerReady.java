@@ -29,7 +29,12 @@ public interface IsServerReady {
         public Boolean apply(Void v) {
             Behavior<Void, Object> getDedicatedServer = behaviorManager.get(BehaviorName.GET_DEDICATED_SERVER_INSTANCE);
             try {
-                return isReady_f.getBoolean(getDedicatedServer.apply(null));
+                Object dedicatedServer = getDedicatedServer.apply(null);
+                if (dedicatedServer == null) {
+                    server.serverRunning = false;
+                    throw new IllegalArgumentException("Server seems to have not been started");
+                }
+                return isReady_f.getBoolean(dedicatedServer);
             } catch (IllegalArgumentException | IllegalAccessException e) {
                 throw new IllegalStateException(e);
             }

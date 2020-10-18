@@ -21,6 +21,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.lang.Thread.UncaughtExceptionHandler;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
@@ -43,11 +46,17 @@ import com.google.gson.Gson;
 public class Chunker {
 
     public static List<String> DIMENSIONS = Arrays.asList("OVERWORLD", "NETHER", "END");
+    public static ServerInterface server;
+
+    public static PrintStream defaultOut;
+    public static PrintStream defaultErr;
 
     public static void main(String[] args) throws Exception {
         Path currentDirectory = Paths.get(".").toAbsolutePath().normalize();
 
         ConsolePrinter.setOut(System.out);
+        defaultOut = System.out;
+        defaultErr = System.err;
 
         if (args.length == 0) {
             throw new IllegalArgumentException("Missing parameter. Must specify the server jar name");
@@ -68,7 +77,9 @@ public class Chunker {
         }
         serverJarPath = serverJarPath.toAbsolutePath().normalize();
 
-        ServerInterface server = ServerInterface.fromJar(serverJarPath, args);
+        Thread.currentThread().setUncaughtExceptionHandler(new UncaughtExceptionHandlerImplementation());
+
+        server = ServerInterface.fromJar(serverJarPath, args);
 
         String[] serverArgs = new String[args.length - 1];
         System.arraycopy(args, 1, serverArgs, 0, serverArgs.length);
@@ -79,7 +90,6 @@ public class Chunker {
         generateChunks(server);
 
         if (Configuration.stop) {
-            println("Stopping server");
             server.stopServer();
         }
 
@@ -110,6 +120,19 @@ public class Chunker {
             server.generateChunk(dimension, Configuration.x1, Configuration.x2, Configuration.z1, Configuration.z2);
         }
         println("Chunk generation done");
+    }
+
+    private static final class UncaughtExceptionHandlerImplementation implements UncaughtExceptionHandler {
+        @Override
+        public void uncaughtException(Thread t, Throwable e) {
+            if (server != null) {
+                server.stopServer();
+            }
+            defaultErr.print("Exception in thread \""
+                    + t.getName() + "\" ");
+            e.printStackTrace(defaultErr);
+            System.exit(1);
+        }
     }
 
 }

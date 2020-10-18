@@ -69,7 +69,7 @@ public class InputHandler extends InputStream {
         t.start();
     }
 
-    public void enqueue(String text, Charset charset) {
+    public void enqueue(String text, Charset charset, boolean wait) {
         if (text.isEmpty()) {
             return;
         }
@@ -86,6 +86,9 @@ public class InputHandler extends InputStream {
             lock.lockInterruptibly();
             locked = true;
             inputAvailable.signal();
+            if (wait) {
+                inputHasBeenRead.await();
+            }
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         } finally {
@@ -131,7 +134,7 @@ public class InputHandler extends InputStream {
             throw new IOException("Thread was interupted");
         } finally {
             if (locked) {
-                inputHasBeenRead.signal();
+                inputHasBeenRead.signalAll();
                 lock.unlock();
             }
         }
@@ -171,7 +174,7 @@ public class InputHandler extends InputStream {
             throw new IOException("Thread was interupted");
         } finally {
             if (locked) {
-                inputHasBeenRead.signal();
+                inputHasBeenRead.signalAll();
                 lock.unlock();
             }
         }

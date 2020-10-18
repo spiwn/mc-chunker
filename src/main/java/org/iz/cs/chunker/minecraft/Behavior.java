@@ -10,6 +10,7 @@ public abstract class Behavior<T, R> implements Function<T, R> {
     protected BehaviorManager behaviorManager;
     protected ClassCache classCache;
     protected Mapping mapping;
+    protected ServerInterface server;
 
     protected Behavior() {
         //super();
@@ -19,10 +20,11 @@ public abstract class Behavior<T, R> implements Function<T, R> {
         //optional
     }
 
-    void init(BehaviorManager behaviorManager, ClassCache classCache, Mapping mapping) {
+    void init(BehaviorManager behaviorManager, ClassCache classCache, Mapping mapping, ServerInterface server) {
         this.behaviorManager = behaviorManager;
         this.classCache = classCache;
         this.mapping = mapping;
+        this.server = server;
         bootstrap();
     }
 

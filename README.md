@@ -65,7 +65,7 @@ on how much work is required for compatibility, but there are no plans for compa
 with versions older than Snapshot 19w36a (the first to include obfuscation mappings; this is
 a snapshot for 1.15) and including 1.14.4
 - ~~Option to stop server when chunk generation is done~~
-- Properly handle server not starting
+- ~~Properly handle server not starting~~
 - Throttling of the generation speed
 - Ability to stop the server, save generation progress, start and resume the chunk generation
 from where it reached

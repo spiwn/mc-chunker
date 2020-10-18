@@ -10,6 +10,10 @@ public class ConsolePrinter {
         // No instances
     }
 
+    public static void print(String x) {
+        out.print(x);
+    }
+
     public static void println(String x) {
         out.println(x);
     }

@@ -40,13 +40,15 @@ public class BehaviorManager {
     private String version;
     private ClassCache classCache;
     private Mapping mapping;
+    private ServerInterface serverInterface;
 
     private Map<BehaviorName, Behavior> behaviorCache;
 
-    public BehaviorManager(String version, ClassCache classCache, Mapping mapping) {
+    public BehaviorManager(String version, ClassCache classCache, Mapping mapping, ServerInterface serverInterface) {
         this.version = version;
         this.classCache = classCache;
         this.mapping = mapping;
+        this.serverInterface = serverInterface;
         this.behaviorCache = new EnumMap<>(BehaviorName.class);
     }
 
@@ -73,7 +75,7 @@ public class BehaviorManager {
         try {
             Constructor constructor = cl.getDeclaredConstructor();
             A result = (A) constructor.newInstance();
-            result.init(this, classCache, mapping);
+            result.init(this, classCache, mapping, serverInterface);
             return result;
         } catch (NoSuchMethodException
                 | SecurityException

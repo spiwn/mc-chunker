@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+import org.iz.cs.chunker.Chunker;
 import org.iz.cs.chunker.Configuration;
 import org.iz.cs.chunker.JarClassLoader;
 import org.iz.cs.chunker.Mapping;
@@ -41,14 +42,19 @@ public class ServerInterface {
 //  private static String RESOURCE_LOCATION_CN = "net.minecraft.resources.ResourceLocation";
 //  private static String GET_PATH_M = "getPath";
 
+    private static final String SERVER_THREAD_NAME = "Server thread";
+
+    public static volatile boolean serverRunning = false;
+
     private InputHandler inputHandler;
     private JarClassLoader loader;
     private BehaviorManager bm;
+    private ThreadGroup minecraftThreadGroup;
 
     private ServerInterface(JarClassLoader loader, Mapping mapping, String versionId, InputHandler inputHandler) throws Exception {
         this.loader = loader;
         this.inputHandler = inputHandler;
-        this.bm = new BehaviorManager(versionId, new ClassCache(mapping, loader), mapping);
+        this.bm = new BehaviorManager(versionId, new ClassCache(mapping, loader), mapping, this);
 
         String dedicatedServerClassName = (String) bm.get(BehaviorName.GET_DEDICATED_SERVER_CLASS_NAME).apply(null);
 
@@ -62,22 +68,17 @@ public class ServerInterface {
         Class<?> mainClazz = loader.loadClass(main);
 
         Method mainMethod = mainClazz.getDeclaredMethod("main", String[].class);
-
-        Thread t = new Thread(new Runnable() {
-
-            @Override
-            public void run() {
-                try {
-                    mainMethod.invoke(null, new Object[] {args});
-                } catch (Exception e) {
-                    //TODO:
-                    throw new IllegalStateException("Error starting Minecraft server");
-                }
-            }
-        });
+        minecraftThreadGroup = new ThreadGroup("Minecraft threads");
+        Thread t = new Thread(minecraftThreadGroup, new RunnableImplementation(args, mainMethod), "Server starter");
         t.setContextClassLoader(loader);
         t.start();
-        t.join();
+        long seconds = 100L;
+        t.join(seconds * 1000L);
+        if (t.isAlive()) {
+            serverRunning = false;
+            throw new IllegalStateException("Server did not start in " + seconds + " seconds");
+        }
+        serverRunning = true;
 
         println("Minecreaft server started");
     }
@@ -126,7 +127,27 @@ public class ServerInterface {
     }
 
     public void stopServer() {
-        inputHandler.enqueue("stop\n", StandardCharsets.UTF_8);
+        if (serverRunning) {
+            println("Stopping server");
+            inputHandler.enqueue("stop\n", StandardCharsets.UTF_8, true);
+
+
+            Thread[] threads = new Thread[64];
+            minecraftThreadGroup.enumerate(threads, false);
+            for (Thread thread : threads) {
+                if (SERVER_THREAD_NAME.equals(thread.getName())) {
+                    try {
+                        thread.join();
+                    } catch (InterruptedException e) {
+                        Chunker.defaultErr.print("Interupted while waiting for server to stop.");
+                        e.printStackTrace(Chunker.defaultErr);
+                    }
+                    break;
+                }
+            }
+        } else {
+            println("Server seems to not be running. Skipping attempt to stop it");
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -171,5 +192,24 @@ public class ServerInterface {
         ServerInterface result = new ServerInterface(loader, mapping, versionId, inputHandler);
 
         return result;
+    }
+
+    private final class RunnableImplementation implements Runnable {
+        private final String[] args;
+        private final Method mainMethod;
+
+        private RunnableImplementation(String[] args, Method mainMethod) {
+            this.args = args;
+            this.mainMethod = mainMethod;
+        }
+
+        @Override
+        public void run() {
+            try {
+                mainMethod.invoke(null, new Object[] {args});
+            } catch (Exception e) {
+                throw new IllegalStateException("Error starting Minecraft server");
+            }
+        }
     }
 }
