@@ -19,6 +19,8 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
@@ -36,7 +38,12 @@ public class Configuration {
     public static String mapping = null;
     public static String[] dimensions = null;
     public static Boolean stop = null;
+
     public static Boolean defaultBehaviors = null;
+    private static final String DEFAULT_BEHAVIORS = "default-behaviors";
+
+    public static BigDecimal maxGenerationRate = null;
+    private static final String MAX_GENERATION_RATE= "max-generation-rate";
 
     public static Boolean supressServerOutput = null;
     private static final String SUPPRESS_SERVER_OUTPUT = "suppress-server-output";
@@ -47,7 +54,7 @@ public class Configuration {
         defaults.setProperty("dimension", "OVERWORLD");
         defaults.setProperty("stop", "false");
         defaults.setProperty(SUPPRESS_SERVER_OUTPUT, "false");
-        defaults.setProperty("default-behaviors", "false");
+        defaults.setProperty(DEFAULT_BEHAVIORS, "false");
         return defaults;
     }
 
@@ -118,7 +125,24 @@ public class Configuration {
         stop = Boolean.valueOf(props.getProperty("stop"));
         supressServerOutput = Boolean.valueOf(props.getProperty(SUPPRESS_SERVER_OUTPUT));
 
-        defaultBehaviors = Boolean.valueOf(props.getProperty("default-behaviors"));
+        defaultBehaviors = Boolean.valueOf(props.getProperty(DEFAULT_BEHAVIORS));
+
+        if (props.getProperty(MAX_GENERATION_RATE) != null) {
+            try {
+                maxGenerationRate = new BigDecimal(props.getProperty(MAX_GENERATION_RATE));
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid value for " + MAX_GENERATION_RATE);
+            }
+            if (maxGenerationRate.compareTo(BigDecimal.ZERO) < 0) {
+                throw new IllegalArgumentException("Invalid value for " + MAX_GENERATION_RATE);
+            }
+            if (maxGenerationRate.compareTo(BigDecimal.ZERO) == 0) {
+                maxGenerationRate = null;
+            } else {
+                maxGenerationRate = maxGenerationRate.setScale(3, RoundingMode.DOWN);
+            }
+        }
+
     }
 
     private static int getInteger(Properties props, String key) {

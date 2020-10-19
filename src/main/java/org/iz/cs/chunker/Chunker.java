@@ -117,7 +117,7 @@ public class Chunker {
     private static void generateChunks(ServerInterface server) throws Exception {
 
         for (String dimension : Configuration.dimensions) {
-            server.generateChunk(dimension, Configuration.x1, Configuration.x2, Configuration.z1, Configuration.z2);
+            server.generateChunks(dimension, Configuration.x1, Configuration.x2, Configuration.z1, Configuration.z2);
         }
         println("Chunk generation done");
     }

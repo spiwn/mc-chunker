@@ -8,11 +8,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+
+import javax.swing.plaf.basic.BasicInternalFrameTitlePane.MaximizeAction;
 
 import org.iz.cs.chunker.Chunker;
 import org.iz.cs.chunker.Configuration;
@@ -91,7 +95,7 @@ public class ServerInterface {
         return (Boolean) IS_SERVER_READY.apply(null, bm);
     }
 
-    public void generateChunk(String dimension, int x1, int x2, int z1, int z2) {
+    public void generateChunks(String dimension, int x1, int x2, int z1, int z2) {
         int total = (x2 - x1 + 1) * (z2 - z1 + 1);
         int counter = 0;
 
@@ -113,12 +117,37 @@ public class ServerInterface {
 
         GenerateChunkArguments args = new GenerateChunkArguments(dimension, 0, 0);
 
+        long limit = 0;
+        long currentTime = 0;
+        long count = 0;
+        if (Configuration.maxGenerationRate != null) {
+            println("Limiting chunk generation to " + Configuration.maxGenerationRate.toPlainString() + " per second");
+            limit = new BigDecimal(1000).divide(Configuration.maxGenerationRate, 0, RoundingMode.DOWN).longValue();
+        }
+        long goal = limit;
+
         long start = System.currentTimeMillis();
         for (int i = x1; i <= x2; i++) {
             for (int j = z1; j <= z2; j++) {
                 args.setX(x1);
                 args.setZ(z1);
+
                 GENERATE_CHUNK.apply(args, bm);
+
+                if (limit > 0) {
+                    currentTime = System.currentTimeMillis();
+                    goal += limit;
+                    long diff = goal - (currentTime - start);
+                    count++;
+                    if (diff > 0) {
+                        try {
+                            Thread.sleep(diff);
+                        } catch (InterruptedException e) {
+                            println("Chunk generation interrupted");
+                        }
+                    }
+                }
+
                 if (++counter == step) {
                     counter = 0;
                     progress += percentIncrement;
