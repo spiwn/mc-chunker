@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -220,7 +221,12 @@ public class ServerInterface {
             throw new IllegalArgumentException("Version not supported: " + versionId);
         }
 
-        Mapping mapping = Mapping.getMappingFor(versionId);
+        Mapping mapping;
+        if (Configuration.mapping == null) {
+            mapping = Mapping.getMappingFor(versionId);
+        } else {
+            mapping = Mapping.fromFile(Paths.get(Configuration.mapping));
+        }
 
         ServerInterface result = new ServerInterface(loader, mapping, versionId, inputHandler);
 

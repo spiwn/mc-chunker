@@ -5,7 +5,8 @@ Mc-Chunker is an application that uses a vanilla [Minecraft](https://www.minecra
 ### Features
 - Generate any amount of chunks
 - Generate chunks in the Overworld, Nether or the End
-- Limit the rate at which chunk are generated
+- (Optional) Limit the rate at which chunk are generated
+- (Optional) Works offline (user must provide mappings and launcher manifest as files)
 
 ### Usage
 Place the mc-chunker.jar in the directory of a Java Minecraft server (both jars must be in the directory). Start mc-chunker via a terminal/command line like:
@@ -69,7 +70,7 @@ a snapshot for 1.15) and including 1.14.4~~
 - ~~Throttling of the generation speed~~
 - Ability to stop the server, save generation progress, start and resume the chunk generation
 from where it reached
-- Option to provide mappings as a file and enter the filename in chunker.properties
+- ~~Option to provide mappings as a file and enter the filename in chunker.properties~~
 - Option to use excessive amounts of CPU in order to speed up generation
 
 ### How it works

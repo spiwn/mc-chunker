@@ -94,6 +94,14 @@ public class Mapping {
         }
     }
 
+    public static Mapping fromFile(Path path) {
+        try {
+            return loadMapping(path);
+        } catch (IOException e) {
+            throw new IllegalStateException("Error reading mapping file", e);
+        }
+    }
+
     private static Mapping getMappingForInternal(String versionId)
             throws URISyntaxException, InterruptedException, MalformedURLException {
         Path chunkerPath = getChunkerPath();
@@ -132,6 +140,9 @@ public class Mapping {
     }
 
     private static Path getManifestJsonPath() {
+        if (Configuration.manifest != null) {
+            return Paths.get(Configuration.manifest);
+        }
         return getChunkerPath().resolve(VERSION_MANIFEST_JSON);
     }
 
@@ -198,7 +209,7 @@ public class Mapping {
             downloadManifest();
         }
 
-        try (BufferedReader reader = Files.newBufferedReader(getManifestJsonPath())) {
+        try (BufferedReader reader = Files.newBufferedReader(manifestPath)) {
             @SuppressWarnings("unchecked")
             Map<String, Object> result = LazyLoader.gson.fromJson(reader, Map.class);
             if (result != null) {

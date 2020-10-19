@@ -27,7 +27,6 @@ import java.util.Properties;
 
 public class Configuration {
 
-
     public  static final String PROPERTIES = "chunker.properties";
 
     public static String serverJar = null;
@@ -35,9 +34,14 @@ public class Configuration {
     public static Integer z1 = null;
     public static Integer x2 = null;
     public static Integer z2 = null;
-    public static String mapping = null;
     public static String[] dimensions = null;
+    private static final String DIMENSION_CONFIG_NAME = "dimension";
+
+    public static String mapping = null;
+    public static String manifest = null;
+
     public static Boolean stop = null;
+    private static final String STOP_CONFIG_NAME = "stop";
 
     public static Boolean defaultBehaviors = null;
     private static final String DEFAULT_BEHAVIORS = "default-behaviors";
@@ -51,8 +55,8 @@ public class Configuration {
 
     public static Properties getDefaults() {
         Properties defaults = new Properties();
-        defaults.setProperty("dimension", "OVERWORLD");
-        defaults.setProperty("stop", "false");
+        defaults.setProperty(DIMENSION_CONFIG_NAME, "OVERWORLD");
+        defaults.setProperty(STOP_CONFIG_NAME, "false");
         defaults.setProperty(SUPPRESS_SERVER_OUTPUT, "false");
         defaults.setProperty(DEFAULT_BEHAVIORS, "false");
         return defaults;
@@ -113,8 +117,9 @@ public class Configuration {
         z2 = big;
 
         mapping = props.getProperty("mapping");
+        manifest = props.getProperty("manifest");
 
-        dimensions = props.getProperty("dimension").toUpperCase().split(",");
+        dimensions = props.getProperty(DIMENSION_CONFIG_NAME).toUpperCase().split(",");
         for (int i = 0; i < dimensions.length; i++) {
             dimensions[i] = dimensions[i].trim();
             if (!Chunker.DIMENSIONS.contains(dimensions[i])) {
@@ -122,7 +127,7 @@ public class Configuration {
             }
         }
 
-        stop = Boolean.valueOf(props.getProperty("stop"));
+        stop = Boolean.valueOf(props.getProperty(STOP_CONFIG_NAME));
         supressServerOutput = Boolean.valueOf(props.getProperty(SUPPRESS_SERVER_OUTPUT));
 
         defaultBehaviors = Boolean.valueOf(props.getProperty(DEFAULT_BEHAVIORS));
