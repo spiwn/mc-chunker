@@ -52,6 +52,8 @@ public class Configuration {
     public static Boolean supressServerOutput = null;
     private static final String SUPPRESS_SERVER_OUTPUT = "suppress-server-output";
 
+    public static Boolean saveProgress = null;
+    private static final String SAVE_GENERATION_PROGRESS = "save-generation-progress";
 
     public static Properties getDefaults() {
         Properties defaults = new Properties();
@@ -59,6 +61,7 @@ public class Configuration {
         defaults.setProperty(STOP_CONFIG_NAME, "false");
         defaults.setProperty(SUPPRESS_SERVER_OUTPUT, "false");
         defaults.setProperty(DEFAULT_BEHAVIORS, "false");
+        defaults.setProperty(SAVE_GENERATION_PROGRESS, "false");
         return defaults;
     }
 
@@ -147,6 +150,8 @@ public class Configuration {
                 maxGenerationRate = maxGenerationRate.setScale(3, RoundingMode.DOWN);
             }
         }
+
+        saveProgress = Boolean.valueOf(props.getProperty(SAVE_GENERATION_PROGRESS));
 
     }
 

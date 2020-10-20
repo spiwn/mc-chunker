@@ -5,8 +5,9 @@ Mc-Chunker is an application that uses a vanilla [Minecraft](https://www.minecra
 ### Features
 - Generate any amount of chunks
 - Generate chunks in the Overworld, Nether or the End
-- (Optional) Limit the rate at which chunk are generated
+- (Optional) Limit the rate at which chunks are generated
 - (Optional) Works offline (user must provide mappings and launcher manifest as files)
+- (Optional) Save progress when stopping the server and resume on next run
 
 ### Usage
 Place the mc-chunker.jar in the directory of a Java Minecraft server (both jars must be in the directory). Start mc-chunker via a terminal/command line like:
@@ -33,6 +34,9 @@ except the name of the server jar will be given to the Minecraft server.
 Once you are done using mc-chunker you should remove it from your starting script.
 Continuing to use the server with mc-chunker is discouraged.
 
+Works with "nogui" and with gui, however Chunker will output only in the
+console and not the gui
+
 ### Configuration
 To configure mc-chunker edit the chunker.properties file. Some of the values are:
 - x1, z1, x2 and z2 - these specify **Chunk** coordinates of two diagonal corners
@@ -43,6 +47,8 @@ values: OVERWORLD, NETHER or END. The default value is OVERWORLD. Comma separate
 done - possible values: true or false
 - suppress-server-output - If set to true, console output from the server will not
 be shown. Log output will remain the same. Possible values: true or false 
+- max-generation-rate - Maximum number of chunks generated per second. Positive number
+- save-generation-progress - If set to true, when the server is shutdown if there are more chunks to be generated, current progress will be saved in a file and next time you start Chunker it will resume from where it left
 
 ### Requirements
 - Java 8 or newer

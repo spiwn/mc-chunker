@@ -17,10 +17,9 @@ import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
-import javax.swing.plaf.basic.BasicInternalFrameTitlePane.MaximizeAction;
-
 import org.iz.cs.chunker.Chunker;
 import org.iz.cs.chunker.Configuration;
+import org.iz.cs.chunker.GenerationProgress;
 import org.iz.cs.chunker.JarClassLoader;
 import org.iz.cs.chunker.Mapping;
 import org.iz.cs.chunker.io.InputHandler;
@@ -35,28 +34,30 @@ public class ServerInterface {
 //  private static String IS_UNSAVED_M = "isUnsaved";
 //  private static String SET_UNSAVED_M = "setUnsaved";
 //  private static String GET_STATUS_M = "getStatus";
-//    private static final String LEVEL_CN = "net.minecraft.world.level.Level";
-//    private static final String GET_CHUNK_M = "getChunk";
-//    private static final String DEDICATED_SERVER_CN = "net.minecraft.server.dedicated.DedicatedServer";
-//    private static final String MINECRAFT_SERVER_CN = "net.minecraft.server.MinecraftServer";
-//    private static final String GET_LEVEL_M = "getLevel";
-//    private static final String LEVEL_KEYS_M = "levelKeys";
-//    private static final String IS_READY_F = "isReady";
-//    private static final String RESOURCE_KEY_CN = "net.minecraft.resources.ResourceKey";
 //  private static String LOCATION_M = "location";
 //  private static String RESOURCE_LOCATION_CN = "net.minecraft.resources.ResourceLocation";
 //  private static String GET_PATH_M = "getPath";
 
     private static final String SERVER_THREAD_NAME = "Server thread";
 
-    public volatile boolean serverRunning = false;
+    private volatile boolean serverRunning = false;
+    private volatile boolean shuttingDown = false;
+    private volatile int lastX = 0;
+    private volatile int lastZ = 0;
 
     private InputHandler inputHandler;
     private JarClassLoader loader;
     private BehaviorManager bm;
     private ThreadGroup minecraftThreadGroup;
 
-    private ServerInterface(JarClassLoader loader, Mapping mapping, String versionId, InputHandler inputHandler) throws Exception {
+    private Thread serverThread = null;
+
+    private ServerInterface(
+            JarClassLoader loader,
+            Mapping mapping,
+            String versionId,
+            InputHandler inputHandler)
+                    throws Exception {
         this.loader = loader;
         this.inputHandler = inputHandler;
         this.bm = new BehaviorManager(versionId, new ClassCache(mapping, loader), mapping, this);
@@ -78,7 +79,7 @@ public class ServerInterface {
 
         Method mainMethod = mainClazz.getDeclaredMethod("main", String[].class);
         minecraftThreadGroup = new ThreadGroup("Minecraft threads");
-        Thread t = new Thread(minecraftThreadGroup, new RunnableImplementation(args, mainMethod), "Server starter");
+        Thread t = new Thread(minecraftThreadGroup, new ServerStarter(args, mainMethod), "Server starter");
         t.setContextClassLoader(loader);
         t.start();
         long seconds = 100L;
@@ -87,6 +88,10 @@ public class ServerInterface {
             serverRunning = false;
             throw new IllegalStateException("Server did not start in " + seconds + " seconds");
         }
+        this.serverThread = getServerThread();
+        t = new Thread(new ServerShutdownListener(), "Server Shutdown Listener");
+        t.setDaemon(true);
+        t.start();
         serverRunning = true;
 
         println("Minecreaft server started");
@@ -96,7 +101,15 @@ public class ServerInterface {
         return (Boolean) IS_SERVER_READY.apply(null, bm);
     }
 
-    public void generateChunks(String dimension, int x1, int x2, int z1, int z2) {
+    public synchronized boolean generateChunks(
+            String dimension,
+            int x1, int x2,
+            int z1, int z2,
+            GenerationProgress oldProgress) {
+        if (shuttingDown) {
+            return false;
+        }
+
         int total = (x2 - x1 + 1) * (z2 - z1 + 1);
         int counter = 0;
 
@@ -107,6 +120,20 @@ public class ServerInterface {
                 + "dimension " + dimension + ". "
                 + "Area contains " + total + " total chunks" );
 
+        int xStart = x1;
+        int zStart = z1;
+        if (oldProgress != null && oldProgress.getX() != null) {
+            xStart = oldProgress.getX();
+            zStart = oldProgress.getZ();
+            if (zStart == z2) {
+                xStart++;
+                zStart = z1;
+            }
+            total = (x2 - xStart + 1) * (z2 - z1) + (z2 - zStart);
+            println("Resuming from (" + xStart + ", " + zStart + "). "
+                    + "Remaining chunks: " + total);
+        }
+
         if (total < 200) {
             step = 1;
             percentIncrement = 100f / (float) total;
@@ -116,30 +143,43 @@ public class ServerInterface {
         }
         float progress = 0;
 
-        GenerateChunkArguments args = new GenerateChunkArguments(dimension, 0, 0);
+        GenerateChunkArguments generateChunkParameters = new GenerateChunkArguments(dimension, 0, 0);
 
         long limit = 0;
         long currentTime = 0;
-        long count = 0;
         if (Configuration.maxGenerationRate != null) {
             println("Limiting chunk generation to " + Configuration.maxGenerationRate.toPlainString() + " per second");
             limit = new BigDecimal(1000).divide(Configuration.maxGenerationRate, 0, RoundingMode.DOWN).longValue();
         }
-        long goal = limit;
+        long goal = 0L;
 
         long start = System.currentTimeMillis();
-        for (int i = x1; i <= x2; i++) {
-            for (int j = z1; j <= z2; j++) {
-                args.setX(x1);
-                args.setZ(z1);
 
-                GENERATE_CHUNK.apply(args, bm);
+        outer:
+        for (int i = xStart; i <= x2; i++) {
+            for (int j = zStart; j <= z2; j++) {
+                generateChunkParameters.setX(x1);
+                generateChunkParameters.setZ(z1);
+
+                if (this.serverThread != null && this.serverThread.isAlive()) {
+                    GENERATE_CHUNK.apply(generateChunkParameters, bm);
+                } else {
+                    break outer;
+                }
+
+                if (Configuration.saveProgress) {
+                    this.lastX = i;
+                    this.lastZ = j;
+                }
+
+                if (this.shuttingDown) {
+                    break outer;
+                }
 
                 if (limit > 0) {
                     currentTime = System.currentTimeMillis();
                     goal += limit;
                     long diff = goal - (currentTime - start);
-                    count++;
                     if (diff > 0) {
                         try {
                             Thread.sleep(diff);
@@ -153,35 +193,74 @@ public class ServerInterface {
                     counter = 0;
                     progress += percentIncrement;
                     long time = System.currentTimeMillis() - start;
-                    println("Progress: " + progress + "% Elapsed: " + (float) time/ 1000 + "s Remaining estimate: " +  ((time * (100 / progress) - time) / 1000) + "s");
+                    println("Progress: " + progress +
+                            "% Elapsed: " + (float) time/ 1000 + "s "
+                            + "Remaining estimate: " + ((time * (100 / progress) - time) / 1000) + "s");
                 }
             }
+            zStart = z1;
         }
         println("Done generating chunk in dimension " + dimension);
+        return true;
+    }
+
+    public int getLastX() {
+        return lastX;
+    }
+
+    public int getLastZ() {
+        return lastZ;
+    }
+
+    public void scheduleShutdown() {
+        if (serverRunning) {
+            if (Configuration.saveProgress) {
+                shuttingDown = true;
+                return;
+            }
+        }
     }
 
     public void stopServer() {
         if (serverRunning) {
+
             println("Stopping server");
             inputHandler.enqueue("stop\n", StandardCharsets.UTF_8, true);
 
-
-            Thread[] threads = new Thread[64];
-            minecraftThreadGroup.enumerate(threads, false);
-            for (Thread thread : threads) {
-                if (SERVER_THREAD_NAME.equals(thread.getName())) {
-                    try {
-                        thread.join();
-                    } catch (InterruptedException e) {
-                        Chunker.defaultErr.print("Interupted while waiting for server to stop.");
-                        e.printStackTrace(Chunker.defaultErr);
-                    }
-                    break;
+            if (this.serverThread != null) {
+                try {
+                    this.serverThread.join();
+                } catch (InterruptedException e) {
+                    Chunker.defaultErr.print("Interupted while waiting for server to stop.");
+                    e.printStackTrace(Chunker.defaultErr);
                 }
             }
         } else {
             println("Server seems to not be running. Skipping attempt to stop it");
         }
+    }
+
+    private Thread getServerThread() {
+        Thread[] threads = new Thread[64];
+        minecraftThreadGroup.enumerate(threads, false);
+        for (Thread thread : threads) {
+            if (SERVER_THREAD_NAME.equals(thread.getName())) {
+                return thread;
+            }
+        }
+        return null;
+    }
+
+
+    public boolean isServerRunning() {
+        return (!shuttingDown)
+                && this.serverRunning
+                && this.serverThread != null
+                && this.serverThread.isAlive();
+    }
+
+    private void setServerRunning(boolean serverRunning) {
+        this.serverRunning = serverRunning;
     }
 
     @SuppressWarnings("unchecked")
@@ -233,11 +312,26 @@ public class ServerInterface {
         return result;
     }
 
-    private final class RunnableImplementation implements Runnable {
+    private final class ServerShutdownListener implements Runnable {
+
+        @Override
+        public void run() {
+            do {
+                try {
+                    serverThread.join();
+                } catch (InterruptedException e) {
+                    //ignore
+                }
+            } while (serverThread.isAlive());
+            setServerRunning(false);
+        }
+    }
+
+    private static final class ServerStarter implements Runnable {
         private final String[] args;
         private final Method mainMethod;
 
-        private RunnableImplementation(String[] args, Method mainMethod) {
+        private ServerStarter(String[] args, Method mainMethod) {
             this.args = args;
             this.mainMethod = mainMethod;
         }
@@ -251,4 +345,5 @@ public class ServerInterface {
             }
         }
     }
+
 }

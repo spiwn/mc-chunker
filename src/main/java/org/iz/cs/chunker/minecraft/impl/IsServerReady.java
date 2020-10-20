@@ -54,12 +54,7 @@ public class IsServerReady extends BehaviorContainer {
         @Override
         public Boolean apply(Void v) {
             try {
-                Object dedicatedServer = applyOther(GET_DEDICATED_SERVER_INSTANCE, null);
-                if (dedicatedServer == null) {
-                    server.serverRunning = false;
-                    throw new IllegalArgumentException("Server seems to have not been started");
-                }
-                return isReady_f.getBoolean(dedicatedServer);
+                return isReady_f.getBoolean(applyOther(GET_DEDICATED_SERVER_INSTANCE, null));
             } catch (IllegalArgumentException | IllegalAccessException e) {
                 throw new IllegalStateException(e);
             }

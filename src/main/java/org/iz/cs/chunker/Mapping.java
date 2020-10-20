@@ -37,7 +37,6 @@ public class Mapping {
 
     private static final String VERSION_MANIFEST_JSON = "version_manifest.json";
     private static final String VERSIONS_MANIFEST_URL = "https://launchermeta.mojang.com/mc/game/version_manifest.json";
-    private static final String CHUNKER_FOLDER = "chunker";
 
     private static final String NAME = ".name";
     private static final String METHOD = "m";
@@ -104,7 +103,7 @@ public class Mapping {
 
     private static Mapping getMappingForInternal(String versionId)
             throws URISyntaxException, InterruptedException, MalformedURLException {
-        Path chunkerPath = getChunkerPath();
+        Path chunkerPath = Chunker.getChunkerPath();
 
         try {
             Files.createDirectories(chunkerPath);
@@ -135,15 +134,11 @@ public class Mapping {
         }
     }
 
-    private static Path getChunkerPath() {
-        return Paths.get(".", CHUNKER_FOLDER);
-    }
-
     private static Path getManifestJsonPath() {
         if (Configuration.manifest != null) {
             return Paths.get(Configuration.manifest);
         }
-        return getChunkerPath().resolve(VERSION_MANIFEST_JSON);
+        return Chunker.getChunkerPath().resolve(VERSION_MANIFEST_JSON);
     }
 
     @SuppressWarnings({ "unchecked" })

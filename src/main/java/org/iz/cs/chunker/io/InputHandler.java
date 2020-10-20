@@ -3,13 +3,15 @@ package org.iz.cs.chunker.io;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PipedInputStream;
 import java.nio.charset.Charset;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Pattern;
+
+import org.iz.cs.chunker.Chunker;
 
 public class InputHandler extends InputStream {
 
@@ -40,14 +42,29 @@ public class InputHandler extends InputStream {
             @Override
             public void run() {
                 try {
+                    int read = 0;
                     while (true) {
                         if (defaultInput.available() == 0) {
                             hasAvailable = false;
                             defaultInput.mark(1);
-                            defaultInput.read();
+                            read = defaultInput.read();
                             defaultInput.reset();
                         }
                         if (defaultInput.available() > 0) {
+                            if (read == 's') {
+                                byte[] buffer = new byte[32];
+                                defaultInput.mark(32);
+                                read = defaultInput.read(buffer);
+                                if (read > 4) {
+                                    if (LazyLoader.stopRe.matcher(new String(buffer, 0, read)).matches()) {
+                                        Chunker.server.scheduleShutdown();
+                                        return;
+                                    }
+                                }
+                                defaultInput.reset();
+                            }
+
+
                             hasAvailable = true;
                             lock.lockInterruptibly();
                             inputAvailable.signal();
@@ -178,6 +195,10 @@ public class InputHandler extends InputStream {
                 lock.unlock();
             }
         }
+    }
+
+    private static class LazyLoader {
+        static Pattern stopRe = Pattern.compile("stop(?:\r|\n|\r\n)");
     }
 
 }

@@ -18,34 +18,28 @@ package org.iz.cs.chunker;
 import static org.iz.cs.chunker.io.ConsolePrinter.println;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.io.PrintWriter;
 import java.lang.Thread.UncaughtExceptionHandler;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
 
 import org.iz.cs.chunker.io.ConsolePrinter;
-import org.iz.cs.chunker.io.InputHandler;
-import org.iz.cs.chunker.io.OutputHandler;
 import org.iz.cs.chunker.minecraft.ServerInterface;
 
 import com.google.gson.Gson;
 
 public class Chunker {
 
+    private static final String PROGRESS_FILE = "progress.json";
     public static List<String> DIMENSIONS = Arrays.asList("OVERWORLD", "NETHER", "END");
+    private static final String CHUNKER_FOLDER = "chunker";
     public static ServerInterface server;
 
     public static PrintStream defaultOut;
@@ -87,17 +81,31 @@ public class Chunker {
 
         waitForServerToLoad(server);
 
-        generateChunks(server);
+        GenerationProgress progress = null;
+        Path progressPath = getChunkerPath().resolve(PROGRESS_FILE);
+        if (Configuration.saveProgress && Files.exists(progressPath)) {
+            progress = readProgressFile();
+        }
+
+        boolean deleteOldProgress = generateChunks(progress);
 
         if (Configuration.stop) {
             server.stopServer();
         }
 
+        if (Configuration.saveProgress && deleteOldProgress) {
+            Files.deleteIfExists(progressPath);
+        }
+
         println("Chunker Done");
     }
 
+    public static Path getChunkerPath() {
+        return Paths.get(".", Chunker.CHUNKER_FOLDER);
+    }
+
     private static void waitForServerToLoad(ServerInterface server) {
-        println("Waiting for server to load");
+        println("Waiting for server to finish loading");
         int count = 0;
         int limit = 100;
         long pause = 1000L;
@@ -114,12 +122,73 @@ public class Chunker {
         }
     }
 
-    private static void generateChunks(ServerInterface server) throws Exception {
+    private static boolean generateChunks(GenerationProgress progress) throws Exception {
+        GenerationProgress localProgress = progress;
+
 
         for (String dimension : Configuration.dimensions) {
-            server.generateChunks(dimension, Configuration.x1, Configuration.x2, Configuration.z1, Configuration.z2);
+            if (localProgress != null && !dimension.equals(localProgress.getDimension())) {
+                continue;
+            }
+
+            boolean hasWorked = server.generateChunks(
+                    dimension,
+                    Configuration.x1, Configuration.x2,
+                    Configuration.z1, Configuration.z2,
+                    localProgress);
+            localProgress = null;
+
+            if (!server.isServerRunning()) {
+                saveProgress(dimension, hasWorked);
+                return false;
+            }
         }
         println("Chunk generation done");
+        return true;
+    }
+
+    private static boolean isDone(String dimension, int x, int z) {
+        return Arrays.binarySearch(Configuration.dimensions, dimension) == Configuration.dimensions.length
+                && x == Configuration.x2
+                && z == Configuration.z2;
+    }
+
+    private static void saveProgress(String dimension, boolean hasWorked) {
+        if (isDone(dimension, server.getLastX(), server.getLastZ())) {
+            return;
+        }
+        GenerationProgress progress = new GenerationProgress();
+        if (hasWorked) {
+            progress.setX(server.getLastX());
+            progress.setZ(server.getLastZ());
+        }
+        progress.setDimension(dimension);
+        writeProgrssFile(progress);
+
+    }
+
+    private static GenerationProgress readProgressFile() {
+        try (BufferedReader br = Files.newBufferedReader(
+                getChunkerPath().resolve(PROGRESS_FILE),
+                StandardCharsets.UTF_8)) {
+            return LazyLoader.gson.fromJson(br, GenerationProgress.class);
+        } catch (IOException e) {
+            throw new RuntimeException("Could not read progress file", e);
+        }
+    }
+
+    private static void writeProgrssFile(GenerationProgress progress) {
+        try (BufferedWriter bw = Files.newBufferedWriter(
+                getChunkerPath().resolve(PROGRESS_FILE),
+                StandardCharsets.UTF_8,
+                StandardOpenOption.TRUNCATE_EXISTING,
+                StandardOpenOption.CREATE)) {
+            LazyLoader.gson.toJson(progress, bw);
+            bw.flush();
+        } catch (IOException e) {
+            defaultErr.println("Could not save progress");
+            e.printStackTrace(defaultErr);
+        }
     }
 
     private static final class UncaughtExceptionHandlerImplementation implements UncaughtExceptionHandler {
@@ -133,6 +202,10 @@ public class Chunker {
             e.printStackTrace(defaultErr);
             System.exit(1);
         }
+    }
+
+    private static class LazyLoader {
+        static Gson gson = new Gson();
     }
 
 }
